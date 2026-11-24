@@ -183,7 +183,7 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <path d="m21.854 2.147-10.94 10.939" /></symbol><symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="icon-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol></svg>
 <header class="top"><div class="wrap"><a class="brand" href="/" aria-label="DantaVaani home">🪔 <span>Danta<span>Vaani</span></span></a><span class="tag">Multilingual voice receptionist demo · Voice ↔ Triage ↔ Action agents</span><span class="workspace">Public sandbox</span></div></header>
 <main class="wrap">
-<p class="notice" role="note"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-info"></use></svg><span><strong>Sandbox only. Don’t share personal information.</strong> Three scripted voices. Examples run the demo workflow once on the server; nothing is booked or sent outside the sandbox. Your browser may send microphone audio to its speech provider; this app only sends the selected example name.</span></p>
+<p class="notice" role="note"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-info"></use></svg><span><strong>Sandbox only. Don’t share personal information.</strong> Practice calls run the demo workflow; nothing is booked with a real clinic. Use a made-up name. Your browser may send microphone audio to its speech provider; this app only sends the selected example name.</span></p>
 <div class="console">
  <section class="call" aria-labelledby="call-heading">
   <header class="panel-head"><h1 id="call-heading">📞 Live call</h1><button class="start-browser-call" id="startBrowserCall" type="button">📞 Call DantaVaani</button><button type="button" id="newCall">New call</button></header>
@@ -249,10 +249,10 @@ button .ico{width:13px;height:13px;margin-right:5px}
    <h2 id="callTitle">DantaVaani reception</h2>
    <p id="browserCallStatus" role="status" tabindex="-1">Ready · Microphone is off</p>
   </div>
-  <p class="browser-privacy" id="callPrivacy"><strong>Use example commands only.</strong> Your browser may send audio to its speech provider. DantaVaani sends only the chosen example code to its server, not audio or transcripts. Nothing is sent to a real clinic.</p>
+  <p class="browser-privacy" id="callPrivacy"><strong>Use a made-up name for this practice call.</strong> The app keeps it only until you hang up. Your browser may send microphone audio to its speech provider. DantaVaani sends no name, transcript, or audio to its server.</p>
   <div class="browser-caption">
    <span class="kicker" id="browserSpeaker">Reception</span>
-   <p id="browserCaption" role="status">Say “book an appointment” or choose a sample below.</p>
+   <p id="browserCaption" role="status">Hi, thanks for calling DantaVaani. Who am I speaking with?</p>
   </div>
   <div id="browserResult" class="browser-result" role="status" hidden></div>
   <p id="browserError" class="browser-error" role="alert"></p>
@@ -262,11 +262,11 @@ button .ico{width:13px;height:13px;margin-right:5px}
    <button type="button" data-call-example="query">Check fees</button>
   </div>
   <form id="browserCommandForm" class="row" autocomplete="off">
-   <input id="browserCommand" type="text" maxlength="120" aria-label="Type an in-call command" placeholder="Type a command instead…">
+   <input id="browserCommand" type="text" maxlength="120" aria-label="Type an in-call command" placeholder="Type your reply…">
    <button type="submit">Send</button>
   </form>
   <div id="browserConfirmRow" class="browser-choices" hidden>
-   <button id="browserConfirm" type="button">Run this example</button>
+   <button id="browserConfirm" type="button">Confirm</button>
    <button id="browserBack" type="button">Choose another</button>
   </div>
   <label class="browser-language">Microphone language

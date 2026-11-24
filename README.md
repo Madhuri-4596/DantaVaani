@@ -20,7 +20,7 @@ The live three-panel demo is built from [`hosted-demo/`](hosted-demo/). Its Node
 
 ## Try it locally
 
-Run `cd hosted-demo`, `npm ci --ignore-scripts`, and `npm start`. Open [localhost:3000](http://localhost:3000), choose **Call DantaVaani**, then **Unmute mic** once. Say “Book an appointment,” then “Confirm.” The mic reopens after each reply. Say “End call” or tap **End call** to hang up. Sample buttons also work without a mic. Never share real patient details. See the [voice command guide](hosted-demo/#try-the-hands-free-browser-call).
+Run `cd hosted-demo`, `npm ci --ignore-scripts`, and `npm start`. Open [localhost:3000](http://localhost:3000), choose **Call DantaVaani**, then **Unmute mic** once. Give a made-up name or say “Skip,” then ask for an appointment in your own words. The mic reopens after each reply. Say “End call” or tap **End call** to hang up. Sample buttons also work without a mic. Never share real patient details. See the [voice command guide](hosted-demo/#try-the-hands-free-browser-call).
 
 ## What's next
 

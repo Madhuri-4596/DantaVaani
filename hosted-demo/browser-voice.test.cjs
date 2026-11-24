@@ -4,10 +4,10 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const {runExample}=require('./engine.cjs');
-function fixture(provider,withSpeech=false){
+function fixture(provider,withSpeech=false,localVoice=false){
  const elements=new Map(),playCalls=[],requests=[],recognitions=[],spoken=[],timers=new Map();
  let timerSeq=0;
- const synth=withSpeech?{speak(line){spoken.push(line);},cancel(){}}:undefined;
+ const synth=withSpeech?{speak(line){spoken.push(line);},cancel(){},getVoices(){return localVoice?[{lang:'en-IN',localService:true,name:'Enhanced test voice'}]:[];}}:undefined;
  const advance=()=>{for(const [id,t] of [...timers])if(t.ms<1000&&timers.delete(id))t.fn();};
  function node(){
   return {
@@ -119,51 +119,43 @@ test('complete provider dialogue plays Voice, Triage, and Action in order',async
  assert.deepEqual(f.roles().filter(role=>role!=='DantaVaani'&&role!=='You'),['Voice Agent','Triage Agent','Action Agent']);
  assert.equal(f.playCalls.length,3);
 });
-test('hands-free call greets, confirms by voice, waits for dialogue, then listens again',async()=>{
- const f=fixture(false,true);
- f.get('startBrowserCall').listeners.click();
- assert.equal(f.dialog.open,true);
- assert.equal(f.recognitions.length,0);
- assert.equal(f.get('browserMic').attrs['aria-pressed'],'false');
+test('hands-free call uses the name in-session, understands a free-form booking request and confirms before running',async()=>{
+ const f=fixture(false,true,true);
+ f.get('startBrowserCall').listeners.click();assert.equal(f.dialog.open,true);assert.equal(f.recognitions.length,0);
  f.get('browserLocale').value='en-IN';
  f.get('browserMic').listeners.click();
- assert.match(f.spoken[0].text,/DantaVaani reception/);
+ assert.match(f.spoken[0].text,/Who am I speaking with/);
  f.advance();assert.equal(f.recognitions.length,0);
- f.spoken[0].onend();f.advance();assert.equal(f.recognitions[0].lang,'en-IN');
- const privateWords='my private example identifier';
- f.recognitions[0].hear(privateWords);
- assert.ok(!JSON.stringify(f.requests).includes(privateWords));
- assert.ok(!JSON.stringify(f.spoken).includes(privateWords));
- f.spoken.at(-1).onend();f.advance();
- f.recognitions[1].hear('I want to book an appointment');
- assert.match(f.get('browserCaption').textContent,/selected/);
+ const say=(index,words)=>{f.spoken.at(-1).onend();f.advance();f.recognitions[index].hear(words);};
+ say(0,'My first name is Asha');
+ assert.match(f.spoken.at(-1).text,/last name/);
+ say(1,'Sharma');
+ assert.match(f.spoken.at(-1).text,/Hi, Asha/);
+ assert.match(f.spoken.at(-1).voice.name,/Enhanced/);
+ say(2,'Hi I was hoping to try book an appointment with the dentist');
+ assert.match(f.spoken.at(-1).text,/Shall I go ahead/);
  assert.equal(f.get('browserConfirmRow').hidden,false);
  assert.ok(!f.requests.some(r=>r.path.includes('/api/demo/')));
- f.advance();assert.equal(f.recognitions.length,2);
- f.spoken.at(-1).onend();f.advance();
- f.recognitions[2].hear('confirm');
+ say(3,'Sure');
  for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
  const workflow=f.requests.find(r=>r.path.includes('/api/demo/'));
- assert.equal(workflow.path,'./api/demo/booking');
- assert.equal(workflow.opts.method,'POST');
- assert.equal(workflow.opts.body,undefined);
+ assert.equal(workflow.path,'./api/demo/booking');assert.equal(workflow.opts.body,undefined);
+ assert.doesNotMatch(JSON.stringify(f.requests),/Asha|Sharma/);
  assert.match(f.get('browserResult').textContent,/Sandbox appointment recorded/);
- const src=f.playCalls.at(-1);
- f.audio.at('playing',src);
- f.advance();assert.equal(f.recognitions.length,3);
- f.audio.at('ended',src,99);
- assert.match(f.spoken.at(-1).text,/What else/);
- f.spoken.at(-1).onend();f.advance();
- f.recognitions[3].hear('check fees');
- f.spoken.at(-1).onend();f.advance();
- f.recognitions[4].hear('choose another');
- f.spoken.at(-1).onend();f.advance();
- f.recognitions[5].hear('end call');
- f.advance();
- assert.equal(f.recognitions.length,6);
+ assert.match(f.spoken.at(-1).text,/didn’t make a real appointment/);
+ assert.equal(f.playCalls.length,0);
+ say(4,'goodbye');f.advance();
  assert.equal(f.dialog.open,false);
- assert.equal(f.audio.paused,true);
- assert.equal(f.get('startBrowserCall').focused,true);
+ f.get('startBrowserCall').listeners.click();
+ assert.match(f.get('browserCaption').textContent,/Who am I speaking with/);
+ assert.doesNotMatch(f.get('browserCaption').textContent,/Asha/);
+});
+test('names stay out of speech output when the browser offers no local voices',()=>{
+ const f=fixture(false,true);
+ f.get('startBrowserCall').listeners.click();f.get('browserMic').listeners.click();
+ f.spoken.at(-1).onend();f.advance();f.recognitions[0].hear('My name is Asha Sharma');
+ assert.match(f.get('browserCaption').textContent,/Hi, Asha/);
+ assert.doesNotMatch(f.spoken.at(-1).text,/Asha|Sharma/);
 });
 test('no speech restarts listening; mute and permission errors prevent restart',()=>{
  const f=fixture(false);
@@ -208,10 +200,24 @@ test('type and confirm a command from inside the call screen',async()=>{
  const field=f.get('browserCommand');
  const submit=()=>f.get('browserCommandForm').listeners.submit({preventDefault(){}});
  field.value='What is the consultation fee?';await submit();
- assert.match(f.get('browserCaption').textContent,/Fees information selected/);
+ assert.match(f.get('browserCaption').textContent,/asking about fees/);
  assert.ok(!f.requests.some(x=>x.path.startsWith('./api')));
  field.value='Confirm';await submit();
  for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
  assert.equal(f.requests.at(-1).path,'./api/demo/query');
  assert.equal(f.get('browserResult').hidden,false);
+});
+
+test('a booking-first caller can decline to share a name and still confirm',async()=>{
+ const f=fixture(false);
+ f.get('startBrowserCall').listeners.click();
+ const field=f.get('browserCommand');
+ const say=async value=>{field.value=value;await f.get('browserCommandForm').listeners.submit({preventDefault(){}});};
+ await say('try book an appointment');
+ assert.match(f.get('browserCaption').textContent,/first and last name/);
+ assert.ok(f.get('browserConfirmRow').hidden);
+ await say('skip');assert.match(f.get('browserCaption').textContent,/Shall I go ahead/);
+ await say('confirm');
+ for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
+ assert.match(f.get('browserResult').textContent,/Sandbox appointment recorded/);
 });

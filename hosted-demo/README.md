@@ -22,12 +22,12 @@ The public workflow endpoint accepts only an empty POST selecting one of three p
 
 ### Try the hands-free browser call
 
-1. Click **Call DantaVaani**, then **Unmute mic** once and allow microphone access.
-2. Wait for **Listening**, then say “Book an appointment”, “Check fees”, or “Practice callback”. Try “Mujhe appointment book karna hai” for Hinglish.
-3. The Voice Agent reads back the selected example. Say “Confirm” to run it, or “Choose another” to change it. The mic pauses during replies and reopens automatically for the next turn.
-4. Say “End call” during a listening turn or click **End call** anytime. **Mute mic** stops recognition without ending the call.
+1. Click **Call DantaVaani**, then **Unmute mic** once and allow microphone access. Wait until the call says **Listening**.
+2. The receptionist asks who is calling. Try a made-up first and last name, such as “Asha Sharma,” or say “Skip.” If you give only a first name, it asks for a last name separately.
+3. Ask in your own words, for example, “Could I get a checkup?” or “What would a visit cost?” The receptionist responds one question at a time. Say “Yes,” “Go ahead,” or “No thanks” when it asks for confirmation.
+4. Say “End call” or tap **End call**. Names are cleared when the call ends. No name or transcript is sent to DantaVaani’s server. Your browser may use its own speech recognition service.
 
-This is a voice-command demo, not an open conversation or a real phone call. The browser generates the greeting and short prompts; the three-agent scenario dialogue is recorded. Supported speech recognition depends on the browser and its permissions. The language selector changes recognition only, not the language of the replies. If the mic is unavailable, use the sample buttons. Do not enter names, contact details, or patient information.
+The flow understands booking, fees, and practice callback requests. It isn’t general-purpose AI or a live clinic line. Practice bookings use a fixed example calendar, not caller scheduling details. The browser chooses an installed English voice, preferring enhanced voices when available. Personalized names are spoken only with a voice the browser identifies as local. On other voices the greeting stays generic in audio. The main-panel sample buttons still use the three-agent recordings.
 
 ### Type a command or check audio
 
