@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DantaVaani — Voice receptionist for dental clinics</title>
+<style>
+  :root { --bg:#0f1720; --panel:#16212d; --panel2:#1c2a38; --line:#26384a; --text:#e8eef5; --muted:#8aa0b5;
+          --teal:#2dd4bf; --saffron:#f59e0b; --red:#ef4444; --green:#22c55e; --blue:#60a5fa; --violet:#a78bfa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Inter, "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; }
+  header { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); background:linear-gradient(90deg,#13202c,#1a1626); }
+  .logo { font-size:22px; font-weight:800; letter-spacing:.3px; }
+  .logo span { color:var(--saffron); }
+  .tag { color:var(--muted); font-size:13px; }
+  .modes { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .pill { font-size:11px; padding:4px 9px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
+  .pill.on { color:#0b1b14; background:var(--teal); border-color:var(--teal); font-weight:700; }
+  main { flex:1; display:grid; grid-template-columns: 1.05fr 1.2fr 1fr; gap:14px; padding:14px; min-height:0; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; min-height:0; }
+  section h2 { margin:0; font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:12px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  section h2 .right { margin-left:auto; }
+  .scroll { overflow-y:auto; flex:1; padding:12px 14px; }
+  /* call */
+  .bubble { max-width:85%; padding:9px 12px; border-radius:14px; margin:6px 0; font-size:14px; line-height:1.4; white-space:pre-wrap; }
+  .caller { background:var(--panel2); margin-left:auto; border-bottom-right-radius:4px; }
+  .agent { background:#123b37; border:1px solid #1f5c55; border-bottom-left-radius:4px; }
+  .who { font-size:10px; color:var(--muted); margin-bottom:2px; }
+  .controls { border-top:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .row { display:flex; gap:8px; align-items:center; }
+  input[type=text] { flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:10px; font-size:14px; }
+  button { cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:9px 12px; border-radius:10px; font-size:13px; }
+  button:hover { border-color:var(--teal); }
+  button.primary { background:var(--teal); color:#062b26; font-weight:700; border-color:var(--teal); }
+  #mic { width:54px; height:54px; border-radius:50%; font-size:22px; background:var(--saffron); color:#2b1700; border:none; flex:none; }
+  #mic.listening { background:var(--red); animation:pulse 1s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(239,68,68,.6)} 100%{box-shadow:0 0 0 14px rgba(239,68,68,0)} }
+  select { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px; font-size:12px; }
+  .demos { display:flex; gap:6px; flex-wrap:wrap; }
+  .demos button { font-size:12px; padding:6px 9px; }
+  #interim { font-size:12px; color:var(--muted); min-height:16px; }
+  /* agent log */
+  .evt { border:1px solid var(--line); border-left:3px solid var(--muted); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:var(--panel2); animation:fade .3s; }
+  @keyframes fade { from{opacity:0; transform:translateY(4px)} to{opacity:1} }
+  .evt .hd { display:flex; gap:6px; align-items:center; font-size:12px; font-weight:600; }
+  .evt .arrow { color:var(--muted); }
+  .badge { font-size:10px; padding:2px 6px; border-radius:6px; background:#0f1720; color:var(--muted); margin-left:auto; text-transform:uppercase; }
+  .evt .sum { font-size:12.5px; color:#c9d6e3; margin-top:4px; }
+  .evt details summary { font-size:11px; color:var(--muted); cursor:pointer; margin-top:4px; }
+  .evt pre { font-size:11px; background:#0b121a; padding:8px; border-radius:8px; overflow-x:auto; margin:6px 0 0; color:#b5c7d8; }
+  .t-handoff { border-left-color:var(--violet); } .t-triage { border-left-color:var(--saffron); } .t-tool_call { border-left-color:var(--blue); }
+  .t-result { border-left-color:var(--green); } .t-fallback { border-left-color:var(--red); } .t-escalate { border-left-color:var(--red); background:#2a1717; }
+  /* dashboard */
+  .alert { background:#2a1414; border:1px solid #7f1d1d; border-radius:10px; padding:10px; margin-bottom:8px; font-size:13px; }
+  .alert b { color:#fca5a5; }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .kpi { background:var(--panel2); border-radius:10px; padding:10px; text-align:center; }
+  .kpi .n { font-size:22px; font-weight:800; } .kpi .l { font-size:11px; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; }
+  tr.new td { background:rgba(45,212,191,.08); }
+  .st { font-size:10px; padding:2px 6px; border-radius:6px; }
+  .st.confirmed{background:#14532d;color:#bbf7d0} .st.rescheduled{background:#1e3a8a;color:#bfdbfe} .st.cancelled{background:#3f3f46;color:#d4d4d8;text-decoration:line-through} .st.emergency-hold{background:#7f1d1d;color:#fecaca}
+  .sub { font-size:12px; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.8px; }
+  .empty { color:var(--muted); font-size:12px; }
+  footer { font-size:11px; color:var(--muted); text-align:center; padding:6px; }
+
+  #callScreen { position:fixed; inset:0; background:radial-gradient(circle at 50% 30%, #1d3b4f, #070b12 70%); z-index:50; display:none; flex-direction:column; align-items:center; justify-content:space-between; padding:50px 20px 40px; }
+  #callScreen.on { display:flex; }
+  .cs-top { text-align:center; }
+  .cs-avatar { width:130px; height:130px; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#ef7d0b); display:flex; align-items:center; justify-content:center; font-size:60px; margin:0 auto 18px; position:relative; }
+  .cs-avatar.speaking::after, .cs-avatar.listening::after { content:''; position:absolute; inset:-14px; border-radius:50%; border:4px solid #2dd4bf; animation:ring 1.2s infinite; }
+  .cs-avatar.listening::after { border-color:#f59e0b; }
+  @keyframes ring { 0%{transform:scale(.9);opacity:1} 100%{transform:scale(1.35);opacity:0} }
+  .cs-name { font-size:28px; font-weight:800; } .cs-sub { color:var(--muted); margin-top:4px; }
+  #csTimer { font-size:18px; margin-top:10px; color:#cfe; font-variant-numeric:tabular-nums; }
+  #csStatus { margin-top:14px; font-size:15px; padding:6px 14px; border-radius:999px; background:#ffffff14; display:inline-block; }
+  .cs-captions { width:min(640px,92vw); display:flex; flex-direction:column; gap:10px; }
+  .cs-cap { padding:12px 16px; border-radius:14px; font-size:16px; line-height:1.4; min-height:20px; }
+  #csYou { background:#ffffff12; align-self:flex-end; } #csBot { background:#123b37; border:1px solid #1f5c55; }
+  .cs-actions { display:flex; gap:40px; align-items:center; }
+  .cs-btn { width:74px; height:74px; border-radius:50%; border:none; font-size:30px; cursor:pointer; }
+  #csHang { background:#ef4444; color:white; } #csMute { background:#ffffff22; color:white; } #csMute.muted { background:#f59e0b; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🪔 Danta<span>Vaani</span></div>
+  <div class="tag">Multilingual microphone settings for the local voice demo · Voice ↔ Triage ↔ Action agents</div>
+  <div class="modes" id="modes"></div>
+</header>
+
+<main>
+  <!-- CALL -->
+  <section>
+    <h2>📞 Browser demo <span class="right"><button class="primary" id="startCall">Start browser call</button> <button id="newCall">New call</button></span></h2>
+    <div class="scroll" id="chat"></div>
+    <div class="controls">
+      <div id="interim"></div>
+      <div class="row">
+        <button id="mic" title="Tap and speak">🎙️</button>
+        <input type="text" id="text" placeholder="Speak, or type e.g. “Kal shaam ko appointment chahiye”" />
+        <button class="primary" id="send">Send</button>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <label style="font-size:12px;color:var(--muted)">Mic language
+          <select id="lang" aria-describedby="localeHelp"><option value="en-IN">English / Hinglish</option><option value="hi-IN">हिंदी Hindi</option><option value="kn-IN">ಕನ್ನಡ Kannada</option><option value="ta-IN">தமிழ் Tamil</option><option value="te-IN">తెలుగు Telugu</option><option value="mr-IN">मराठी Marathi</option><option value="bn-IN">বাংলা Bengali</option></select>
+        </label>
+        <label style="font-size:12px;color:var(--muted)"><input type="checkbox" id="tts" checked /> Speak replies</label>
+      </div>
+      <p id="localeHelp" style="margin:0;color:var(--muted);font-size:11px">Recognized audio depends on your browser. Offline replies are English or Hindi/Hinglish; the other choices set the microphone language.</p>
+      <div class="demos">
+        <button data-demo="booking">▶ Hinglish booking</button>
+        <button data-demo="emergency">▶ Emergency</button>
+        <button data-demo="reschedule">▶ Reschedule</button>
+        <button data-demo="query">▶ Fees & timings</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT LOG -->
+  <section>
+    <h2>🤝 Agent-to-agent hand-offs <span class="right"><button id="clearLog">Clear</button></span></h2>
+    <div class="scroll" id="log"><div class="empty">Every message between the Voice, Triage and Action agents appears here.</div></div>
+  </section>
+
+  <!-- CLINIC -->
+  <section>
+    <h2>🦷 <span id="clinicName">Clinic</span> <span class="right"><button id="reset" title="Reset demo data">Reset</button></span></h2>
+    <div class="scroll">
+      <div class="kpis">
+        <div class="kpi"><div class="n" id="kBooked">0</div><div class="l">booked by AI</div></div>
+        <div class="kpi"><div class="n" id="kAlerts" style="color:var(--red)">0</div><div class="l">doctor alerts</div></div>
+        <div class="kpi"><div class="n" id="kFree">0</div><div class="l">free slots (3 days)</div></div>
+      </div>
+      <div class="sub">🚨 Doctor alerts</div>
+      <div id="alerts"><div class="empty">No emergencies.</div></div>
+      <div class="sub">📅 Upcoming appointments</div>
+      <table><thead><tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead><tbody id="appts"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<div class="practice-audio" style="padding:6px 14px;border-top:1px solid #344455;display:flex;align-items:center;flex-wrap:wrap;gap:7px">
+<strong>Play three scripted agent voices</strong>
+<button type="button" data-clip="booking">Booking</button><button type="button" data-clip="urgent">Callback</button><button type="button" data-clip="fees">Fees</button>
+<audio id="agentAudio" controls preload="none" style="height:34px;max-width:100%"></audio><span id="clipCue" role="status"></span>
+</div>
+<div id="callScreen" role="dialog" aria-modal="true" aria-label="Browser voice demo">
+  <div class="cs-top">
+    <div class="cs-avatar" id="csAvatar">🦷</div>
+    <div class="cs-name">DantaVaani</div>
+    <div class="cs-sub" id="csClinic">DantaVaani Practice Desk · No phone connection</div>
+    <div id="csTimer">Calling…</div>
+    <div id="csStatus">Connecting</div>
+  </div>
+  <div class="cs-captions">
+    <div class="cs-cap" id="csYou"></div>
+    <div class="cs-cap" id="csBot"></div>
+  </div>
+  <div class="cs-actions">
+    <button class="cs-btn" id="csMute" title="Mute">🎙️</button>
+    <button class="cs-btn" id="csHang" title="Hang up">📞</button>
+  </div>
+</div>
+<footer>Local browser demo only. No real clinic, calls or medical advice. Use demo contact codes rather than real details. Browser speech recognition may use its provider.</footer>
+
+<script src="/voice-cues.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let sessionId = crypto.randomUUID();
+let busy = false;
+let demoRunning = false;
+
+const AGENT_COLORS = { 'Caller':'#e8eef5', 'Voice Agent':'#2dd4bf', 'Triage Agent':'#f59e0b', 'Action Agent':'#22c55e', 'Clinic System':'#60a5fa', 'System':'#ef4444' };
+const color = (n) => AGENT_COLORS[Object.keys(AGENT_COLORS).find((k) => n.startsWith(k))] || '#e8eef5';
+
+function addBubble(text, who) {
+  const d = document.createElement('div');
+  d.className = 'bubble ' + (who === 'caller' ? 'caller' : 'agent');
+  d.innerHTML = `<div class="who">${who === 'caller' ? '👤 Caller' : '🤖 DantaVaani'}</div>`;
+  d.appendChild(document.createTextNode(text));
+  $('chat').appendChild(d); $('chat').scrollTop = 1e9;
+}
+
+function summarize(e) {
+  const p = e.payload || {};
+  switch (e.type) {
+    case 'handoff': return Object.entries(p).filter(([k, v]) => v && k !== 'utterance' && !(Array.isArray(v) && !v.length)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(',') : v}`).join(' · ');
+    case 'triage': return p.note || `${p.escalate ? '⚠ ESCALATE' : '✓ routine'} — severity: ${p.severity}${p.symptoms && p.symptoms.length ? ' — ' + p.symptoms.join(', ') : ''}`;
+    case 'tool_call': {
+      const r = p.result; let res = Array.isArray(r) ? `${r.length} result(s)` : r && r.error ? '✗ ' + r.error : r && r.id ? `✓ ${r.id}` : '✓ ok';
+      return `${p.tool}(${Object.entries(p.args).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(', ')}) → ${res}`;
+    }
+    case 'result': return `status: ${p.status} — “${(p.message_for_caller || '').slice(0, 110)}${(p.message_for_caller || '').length > 110 ? '…' : ''}”`;
+    case 'fallback': return `Lyzr unavailable (${p.reason}) → ${p.now}`;
+    default: return p.text || '';
+  }
+}
+
+function addEvents(events) {
+  if ($('log').querySelector('.empty')) $('log').innerHTML = '';
+  for (const e of events) {
+    if (e.type === 'utterance' || e.type === 'reply') continue;
+    const d = document.createElement('div');
+    const esc = e.type === 'triage' && e.payload.escalate;
+    d.className = `evt t-${esc ? 'escalate' : e.type}`;
+    d.innerHTML = `<div class="hd"><span style="color:${color(e.from)}">${e.from}</span><span class="arrow">→</span><span style="color:${color(e.to)}">${e.to}</span>
+      <span class="badge">${e.type.replace('_', ' ')}${e.engine ? ' · ' + e.engine : ''}</span></div>
+      <div class="sum"></div><details><summary>payload</summary><pre></pre></details>`;
+    d.querySelector('.sum').textContent = summarize(e);
+    d.querySelector('pre').textContent = JSON.stringify(e.payload, null, 2);
+    $('log').appendChild(d);
+  }
+  $('log').scrollTop = 1e9;
+}
+
+let knownIds = new Set(); let firstLoad = true;
+async function refresh() {
+  const s = await fetch('/api/state').then((r) => r.json());
+  $('clinicName').textContent = s.clinic.name;
+  const m = s.mode;
+  $('modes').innerHTML = [['Voice', m.voice], ['Triage', m.triage], ['Action', m.action], ['BAND', m.band ? 'mirrored' : 'off']]
+    .map(([k, v]) => `<span class="pill ${v === 'lyzr' || v === 'mirrored' ? 'on' : ''}">${k}: ${v}</span>`).join('');
+  const ai = s.appointments.filter((a) => a.source === 'DantaVaani');
+  $('kBooked').textContent = ai.length; $('kAlerts').textContent = s.alerts.length; $('kFree').textContent = s.freeSlotsNext3Days;
+  $('alerts').innerHTML = s.alerts.length ? '' : '<div class="empty">No emergencies.</div>';
+  for (const a of s.alerts) {
+    const d = document.createElement('div'); d.className = 'alert';
+    d.innerHTML = `<b>${a.severity.toUpperCase()}</b> · ${new Date(a.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} → ${a.doctor}<br><span></span><br><small>📱 ${a.phone || 'awaiting number'}</small>`;
+    d.querySelector('span').textContent = a.summary; $('alerts').appendChild(d);
+  }
+  const tb = $('appts'); tb.innerHTML = '';
+  for (const a of s.appointments) {
+    const tr = document.createElement('tr');
+    if (!firstLoad && !knownIds.has(a.id + a.status + a.slotId)) tr.className = 'new';
+    const when = new Date(a.date + 'T' + a.time).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+    tr.innerHTML = `<td>${when}</td><td></td><td></td><td><span class="st ${a.status}">${a.status}</span>${a.source === 'DantaVaani' ? ' 🤖' : ''}</td>`;
+    tr.children[1].textContent = a.name; tr.children[2].textContent = a.reason;
+    tb.appendChild(tr);
+  }
+  knownIds = new Set(s.appointments.map((a) => a.id + a.status + a.slotId)); firstLoad = false;
+}
+
+// ---------- speech ----------
+let voices = [];
+let currentSpeech = null;
+const synth = window.speechSynthesis;
+const loadVoices = () => { voices = synth ? synth.getVoices() : []; };
+if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
+function cancelSpeech() {
+ const finish = currentSpeech; currentSpeech = null;
+ try { synth?.cancel(); } catch {}
+ finish?.(false);
+}
+function speak(text, lang, force=false) {
+  if ((!force && !$('tts').checked) || !synth || typeof SpeechSynthesisUtterance !== 'function' || !text) return Promise.resolve(false);
+  cancelSpeech();
+  return new Promise((resolve) => {
+    const u = new SpeechSynthesisUtterance(text);
+    const preferred=$('lang').value;
+    const scripts=[[/[\u0C80-\u0CFF]/,'kn-IN'],[/[\u0B80-\u0BFF]/,'ta-IN'],[/[\u0C00-\u0C7F]/,'te-IN'],[/[\u0980-\u09FF]/,'bn-IN'],[/[\u0900-\u097F]/,preferred==='mr-IN'?'mr-IN':'hi-IN']];
+    const script=scripts.find(([range])=>range.test(text));
+    const want=script?script[1]:(lang==='hi'?'hi-IN':'en-IN');
+    u.voice = voices.find(v => v.lang === want) || voices.find(v => v.lang.startsWith('en')) || null;
+    u.lang = want; u.rate = .96;
+    const timeout = setTimeout(() => { if(currentSpeech===complete)cancelSpeech(); }, Math.min(18000, 3500 + text.length * 75));
+    function complete(ok) {
+      clearTimeout(timeout);
+      if(currentSpeech===complete)currentSpeech=null;
+      resolve(ok);
+    }
+    currentSpeech=complete;
+    u.onend=()=>complete(true);
+    u.onerror=()=>complete(false);
+    try{synth.speak(u);}catch{complete(false);}
+  });
+}
+const demoAudio=$('agentAudio');
+let demoClip=null;
+function clipCaption(){
+ const cues=demoClip&&callCues[demoClip];if(!cues)return;
+ let index=0;
+ for(let i=1;i<cues.length;i++)if(cues[i].at<=demoAudio.currentTime)index=i;
+ const line=cues[index];$('clipCue').textContent=line.voice+' agent: '+line.text;
+}
+demoAudio.addEventListener('timeupdate',clipCaption);
+demoAudio.addEventListener('playing',clipCaption);
+document.querySelectorAll('[data-clip]').forEach(button=>button.onclick=()=>{
+ if(call.active)endCall();cancelSpeech();
+ demoClip=button.dataset.clip;
+ demoAudio.src='/voice/'+demoClip+'.mp3';
+ $('clipCue').textContent='Loading dialogue…';
+ void demoAudio.play().catch(()=>{$('clipCue').textContent='Tap the audio play control to listen.';});
+});
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+if (SR) {
+  rec = new SR(); rec.interimResults = true; rec.continuous = false;
+  rec.onresult = (e) => {
+    let finalText = '', interim = '';
+    for (const r of e.results) (r.isFinal ? (finalText += r[0].transcript) : (interim += r[0].transcript));
+    $('interim').textContent = interim ? '…' + interim : '';
+    if (finalText) { $('interim').textContent = ''; send(finalText); }
+  };
+  rec.onend = () => $('mic').classList.remove('listening');
+  rec.onerror = (e) => { $('interim').textContent = 'Mic: ' + e.error; $('mic').classList.remove('listening'); };
+} else { $('mic').disabled = true; $('mic').title = 'Speech recognition needs Chrome or Edge'; }
+
+$('mic').onclick = () => {
+  if (!rec) return;
+  if ($('mic').classList.contains('listening')) return rec.stop();
+  cancelSpeech(); demoAudio.pause();
+  try{ rec.lang = $('lang').value; rec.start(); $('mic').classList.add('listening'); }catch{ $('interim').textContent='Could not start mic. Try typing a sample.'; }
+};
+
+// ---------- chat ----------
+async function send(text) {
+  text = (text || '').trim(); if (!text || busy) return;
+  busy = true; addBubble(text, 'caller'); $('text').value = '';
+  try {
+    const r = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, text, langHint: $('lang').value }) }).then((x) => x.json());
+    addEvents(r.events || []);
+    addBubble(r.reply || r.error, 'agent');
+    refresh();
+    await speak(r.reply || '', r.lang);
+    busy = false;
+  } catch (e) { addBubble('Connection problem: ' + e.message, 'agent'); busy = false; }
+}
+$('send').onclick = () => send($('text').value);
+$('text').onkeydown = (e) => { if (e.key === 'Enter') send($('text').value); };
+
+function newCall() { sessionId = crypto.randomUUID(); $('chat').innerHTML = ''; cancelSpeech(); }
+$('newCall').onclick = newCall;
+$('clearLog').onclick = () => { $('log').innerHTML = ''; };
+$('reset').onclick = async () => { await fetch('/api/reset', { method: 'POST' }); newCall(); $('log').innerHTML = ''; firstLoad = true; refresh(); };
+
+const DEMOS = {
+  booking: ['Hello, mujhe appointment book karna hai', 'Daant mein dard hai', 'kal', 'shaam ko', 'Mera naam Demo Caller hai', 'demo contact A'],
+  emergency: ['Hello, mere daant mein bahut swelling hai aur bukhar bhi hai', 'demo contact B'],
+  reschedule: ['Hi, I want to reschedule my appointment', 'It is demo contact A', 'Friday', 'Morning please'],
+  query: ['What are your timings and how much is a cleaning?'],
+};
+document.querySelectorAll('[data-demo]').forEach((b) => b.onclick = async () => {
+  if (demoRunning) return; demoRunning = true; newCall();
+  for (const line of DEMOS[b.dataset.demo]) {
+    while (busy) await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 600));
+    await send(line);
+  }
+  demoRunning = false;
+});
+
+
+// ---------- Local browser conversation, not a telephone call ----------
+const call={active:false,muted:false,epoch:0,timer:null,turn:false,failed:false,recognizing:false,resume:false};
+function csStatus(txt,mode){$('csStatus').textContent=txt;$('csAvatar').className='cs-avatar '+(mode||'');}
+function callListen(epoch=call.epoch){
+ if(!call.active||call.epoch!==epoch||call.muted||call.failed||call.turn||!rec)return;
+ if(call.recognizing){call.resume=true;return;}
+ call.resume=false;
+ try{rec.lang=$('lang').value;call.recognizing=true;rec.start();csStatus('Listening… speak now','listening');}
+ catch{call.recognizing=false;csStatus('Could not start mic · use example dialogue','');}
+}
+async function callTurn(text,epoch){
+ if(!call.active||call.epoch!==epoch||call.muted||call.turn)return;
+ call.turn=true;call.resume=false;csStatus('Thinking…','');
+ addBubble(text,'caller');
+ try{
+  const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,text,langHint:$('lang').value})});
+  const r=await response.json();
+  if(!call.active||call.epoch!==epoch)return;
+  if(!response.ok){ $('csBot').textContent=r.error||'Local demo request failed.'; return; }
+  addEvents(r.events||[]);addBubble(r.reply||'', 'agent');refresh();
+  $('csBot').textContent=r.reply||'';csStatus('Reading response…','speaking');
+  if(!await speak(r.reply, r.lang,true)){
+   if(call.active&&call.epoch===epoch&&!call.muted)$('csBot').textContent=(r.reply||'')+' · Browser audio unavailable. Try a recorded example.';
+  }
+ }catch{if(call.active&&call.epoch===epoch)$('csBot').textContent='Local demo connection problem.';}
+ finally{if(call.active&&call.epoch===epoch){call.turn=false;callListen(epoch);}}
+}
+async function startCall(){
+ if(call.active||busy||demoRunning)return;
+ if(!rec){$('interim').textContent='Microphone unsupported. Try the recorded example dialogue.';return;}
+ demoAudio.pause();newCall();call.active=true;call.muted=false;call.failed=false;call.recognizing=false;call.resume=false;call.turn=true;
+ const epoch=++call.epoch;const start=Date.now();
+ $('csMute').classList.remove('muted');$('csMute').setAttribute('aria-pressed','false');
+ $('callScreen').classList.add('on');$('csYou').textContent='';$('csBot').textContent='';
+ $('csClinic').textContent='Practice Desk · Browser audio only';$('csTimer').textContent='00:00';$('csHang').focus();
+ call.timer=setInterval(()=>{const secs=Math.floor((Date.now()-start)/1000);$('csTimer').textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');},500);
+ const greet='Namaste. This is a browser practice call. Say book an appointment, and use only demo details.';
+ $('csBot').textContent=greet;addBubble(greet,'agent');csStatus('Reading greeting…','speaking');
+ const played=await speak(greet,'en',true);
+ if(!call.active||call.epoch!==epoch)return;
+ if(!played&&!call.muted)$('csBot').textContent=greet+' · Browser audio unavailable. Try a recorded example.';
+ call.turn=false;callListen(epoch);
+}
+function endCall(){
+ call.active=false;call.turn=false;call.resume=false;++call.epoch;
+ clearInterval(call.timer);try{rec?.abort();}catch{}
+ call.recognizing=false;cancelSpeech();csStatus('Demo call ended','');
+ $('callScreen').classList.remove('on');$('startCall').focus();
+}
+$('startCall').onclick=startCall;
+$('csHang').onclick=endCall;
+$('csMute').onclick=()=>{
+ if(!call.active)return;
+ call.muted=!call.muted;$('csMute').classList.toggle('muted',call.muted);$('csMute').setAttribute('aria-pressed',String(call.muted));
+ if(call.muted){call.resume=false;cancelSpeech();try{rec.abort();}catch{}csStatus('Muted','');}
+ else callListen();
+};
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&call.active)endCall();});
+window.addEventListener('pagehide',()=>{if(call.active)endCall();cancelSpeech();demoAudio.pause();});
+if(rec){
+ const origResult=rec.onresult,origEnd=rec.onend,origError=rec.onerror;
+ rec.onresult=(event)=>{
+  if(!call.active)return origResult(event);
+  if(call.muted||call.failed)return;
+  let fin='';
+  for(const r of event.results)if(r.isFinal)fin+=r[0].transcript;
+  if(fin.trim())callTurn(fin.trim(),call.epoch);
+ };
+ rec.onend=()=>{
+  origEnd();
+  if(!call.active)return;
+  call.recognizing=false;
+  if(call.resume&&!call.muted&&!call.failed)callListen();
+  else if(!call.turn&&!call.muted&&!call.failed){call.failed=true;csStatus('No speech captured · end call and try again','');}
+ };
+ rec.onerror=(event)=>{
+  if(!call.active)return origError(event);
+  if(event.error==='aborted')return;
+  call.failed=true;call.resume=false;
+  csStatus(event.error==='not-allowed'?'Mic blocked · allow access or use an example':'Could not hear speech · try an example','');
+ };
+}
+
+refresh(); setInterval(refresh, 4000);
+</script>
+</body>
+</html>
