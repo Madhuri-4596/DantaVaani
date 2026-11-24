@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DantaVaani — Voice receptionist for dental clinics</title>
+<style>
+:root{color-scheme:dark;--bg:#121317;--surface:#171921;--shift:#1c202a;--ink:#f4f5fa;--muted:#aab3c7;--line:#383e4c;--blue:#5683ff;--bright:#a9beff;--error:#ff9aac;--soft:#101d3d;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+button,input,select{font:inherit}
+button{cursor:pointer;background:#232733;color:#ecf0fb;border:1px solid #404857;border-radius:7px;padding:8px 12px;min-height:38px;font-weight:650;white-space:nowrap}
+button:hover:not(:disabled){background:#30384a;border-color:#6883bc}
+button:disabled{opacity:.48;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #9eb6ff;outline-offset:4px}
+.wrap{width:min(100% - 48px,1240px);margin-inline:auto}
+.top{border-bottom:1px solid var(--line);background:#181a20}
+.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:57px}
+.brand{display:flex;gap:9px;align-items:center;color:var(--ink);text-decoration:none;font-size:21px;font-weight:730;letter-spacing:-.05em}
+.brand svg{width:31px;height:31px;padding:5px;color:#dce5ff;background:#25478e;border-radius:7px}
+.brand span span{color:var(--bright)}
+.workspace{color:var(--muted);font-size:11px;font-weight:730;text-transform:uppercase;letter-spacing:.1em}
+.notice{margin:10px 0;color:#b1bdd2;font-size:11px;line-height:1.4}
+.notice strong{color:#ced9f2;margin-right:4px}
+.toolbar{margin-top:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);background:#191c23;border-radius:9px 9px 0 0}
+.trial-group,.trials{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.toolbar label,.kicker,.sub{font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+.trials button,.toolbar #newCall,.rail button,.results button{font-size:12px;min-height:34px;padding:5px 8px}
+.trials button:first-child{background:#20366e;border-color:#4e6fbc;color:#f8faff}
+.trials button[aria-pressed=true]{border-color:var(--bright);color:#fff;background:#3357a9}
+.console{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.41fr);border:1px solid var(--line);border-top:0;min-width:0;background:#15171e;border-radius:0 0 9px 9px;overflow:hidden}
+.call{padding:14px clamp(12px,3vw,38px) 17px;text-align:center;min-width:0}
+.call-status{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:#c4d4fa;font-weight:750;text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.call-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#83a5ff}
+.call-status[data-state=listening]::before{background:#ff96af;box-shadow:0 0 0 4px #ff96af35}
+.call-status[data-state=working]::before{background:#ffd17c}
+.call h1{font-size:clamp(26px,4vw,43px);font-weight:720;letter-spacing:-.055em;margin:8px 0 1px;line-height:1.12}
+.call-deck{margin:0;color:var(--muted);font-size:13px}
+.voice-tile{position:relative;display:flex;align-items:center;justify-content:center;gap:15px;margin:11px 0 0;min-height:86px}
+.voice-tile .wave{color:#567bc1;width:clamp(42px,13vw,135px);height:36px}
+.voice-tile .wave svg{display:block;width:100%;height:100%}
+.voice-tile:has(#mic.listening) .wave{color:#ff96af;animation:wave .7s alternate infinite}
+@keyframes wave{from{transform:scaleY(.6);opacity:.7}to{transform:scaleY(1.15);opacity:1}}
+#mic{display:grid;place-items:center;width:76px;height:76px;padding:0;border-radius:50%;background:#3b69e3;border:1px solid #9ab4ff;box-shadow:0 0 0 6px #2f4c8c52;flex:none}
+#mic svg{width:30px;height:30px}
+#mic:hover:not(:disabled),#send:hover:not(:disabled){background:#557efa}
+#mic.listening{background:#ac4260;border-color:#f4a4bb;box-shadow:0 0 0 6px #b64d6966}
+.mic-caption{display:block;font-size:11px;color:#b5c3e1;margin:4px 0 0}
+#interim{color:#ffbbca;font-size:11px;overflow-wrap:anywhere;margin:4px 0;min-height:0}
+#interim:empty{display:none}
+.transcript-head{width:min(100%,680px);margin:8px auto 0;text-align:left;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #363c4b;padding-bottom:6px}
+#chat{width:min(100%,680px);height:clamp(115px,21vh,205px);overflow-y:auto;padding:9px 0 1px;margin:0 auto;text-align:left}
+.chat-empty{min-height:100%;display:grid;align-content:center;text-align:center;color:var(--muted);font-size:12px;gap:2px}
+.chat-empty strong{display:block;color:#d5def0;font-size:13px}
+.bubble{width:fit-content;max-width:87%;padding:8px 12px;border-radius:9px;margin:0 0 8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.caller{background:#21346d;margin-left:auto;border-bottom-right-radius:3px}
+.agent{background:#242936;border:1px solid #394153;border-bottom-left-radius:3px}
+.who{color:#a7b9eb;font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:2px}
+.controls{display:grid;width:min(100%,680px);margin:4px auto 0;gap:7px;text-align:left}
+.row{display:flex;align-items:center;gap:7px}
+input[type=text]{min-width:0;flex:1;border:1px solid #494f61;background:#1e222c;color:var(--ink);border-radius:7px;padding:8px 10px}
+input::placeholder{color:#a1acc4}
+#send{background:#355fd3;color:white;border-color:#7094ff}
+.settings{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:11px}
+.settings label{display:flex;gap:5px;align-items:center}
+select{border:1px solid #424a59;background:#212632;color:#eff2fa;border-radius:5px;font-size:11px;padding:4px}
+.rail{padding:14px 14px 8px;background:#191b22;border-left:1px solid var(--line);min-width:0;text-align:left}
+.rail-head{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:8px}
+.rail-head h2{font-size:16px;letter-spacing:-.015em;margin:0}
+.pipeline{list-style:none;padding:0 0 0 9px;margin:0 0 8px}
+.pipeline li{position:relative;padding:4px 0 11px 17px;border-left:1px solid #414b60;line-height:1.3}
+.pipeline li:before{content:"";position:absolute;left:-5px;top:7px;width:9px;height:9px;border:1px solid #7788a9;border-radius:50%;background:#252b38}
+.pipeline li[data-state=active]:before,.pipeline li[data-state=done]:before{background:#6d95ff;border-color:#b6cbff}
+.pipeline li[data-state=review]:before{background:#ff8ba8;border-color:#f1a8bb}
+.pipeline li:last-child{padding-bottom:2px;border-left-color:transparent}
+.pipeline strong{display:block;font-size:12px}
+.pipeline span{color:var(--muted);font-size:11px}
+.event-title{padding-top:8px;margin-top:9px;border-top:1px solid var(--line)}
+.log-scroll{min-height:46px;max-height:174px;overflow-y:auto;margin-top:5px;scrollbar-width:thin}
+.empty{color:var(--muted);margin:0;font-size:12px;overflow-wrap:anywhere}
+.evt{padding:6px 2px 6px 6px;border-bottom:1px solid #3a4050;border-left:2px solid #4c6aad;font-size:11px}
+.evt:last-child{border-bottom:0}
+.evt.t-fallback,.evt.t-escalate{border-left-color:#e790a7}
+.evt .hd{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-weight:750}
+.evt .arrow{color:var(--muted)}
+.badge{font-size:9px;padding:1px 4px;border-radius:3px;background:#30384d;color:#c6d6ff;text-transform:uppercase}
+.evt .sum{color:#e0e6f4;overflow-wrap:anywhere;margin-top:2px}
+.evt details summary{color:#b7c8f3;cursor:pointer;font-size:10px;margin-top:2px}
+.evt pre{margin:2px 0;font-size:10px;color:#c7d9ff;background:#131721;max-height:96px;overflow:auto;padding:6px}
+.modes{display:flex;flex-wrap:wrap;gap:4px;padding-top:9px}
+.pill{font-size:9px;color:#aebddf;padding:2px 4px;background:#272c3c;border-radius:4px}
+.pill.on{color:#c9d9ff;background:#243c79}
+.results{margin-top:11px;border:1px solid var(--line);border-radius:8px;background:#181b23;text-align:left;overflow:hidden}
+.results summary{color:#ebeff8;cursor:pointer;padding:10px 14px;font-weight:700}
+.results summary .result-count{font-size:11px;color:var(--muted);font-weight:530;margin-left:7px}
+.desk-data{padding:8px 14px 14px;border-top:1px solid var(--line)}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:7px}
+.card-head h2{font-size:16px;margin:0}
+.kpis{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
+.kpi{padding:4px 7px;background:#232837;border-radius:5px;display:flex;align-items:baseline;gap:5px}
+.kpi .n{font-weight:740}.kpi .l{font-size:10px;color:var(--muted)}
+.sub{margin:9px 0 4px}
+.alert{border-left:2px solid #ee97aa;background:#2b1d28;color:#ead5e0;padding:6px;margin-bottom:5px;font-size:12px;overflow-wrap:anywhere}.alert b{color:#ffacbf}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{text-align:left;padding:5px;border-bottom:1px solid #3a4151}
+th{color:var(--muted);text-transform:uppercase;font-size:9px;letter-spacing:.06em}
+tr.new td{background:#26314a}
+.st{display:inline-block;padding:2px 4px;border-radius:3px;background:#26314a;color:#d0ddff;white-space:nowrap}
+.st.cancelled{text-decoration:line-through}.st.emergency-hold{background:#432639;color:#ffd1df}
+footer{color:#a5afc6;font-size:10px;margin:12px auto 18px!important}
+@media(max-width:800px){.wrap{width:calc(100% - 28px)}.console{grid-template-columns:minmax(0,1fr) minmax(213px,.51fr)}.call{padding-left:12px;padding-right:12px}}
+@media(max-width:650px){.console{grid-template-columns:1fr}.rail{border-left:0;border-top:1px solid var(--line)}.pipeline{display:flex;gap:10px;flex-wrap:wrap}.pipeline li{flex:1;min-width:88px}.toolbar{align-items:flex-start}#chat{height:150px}.trial-group{gap:4px}.toolbar label{width:100%}.toolbar #newCall{margin-left:auto}.workspace{font-size:9px;letter-spacing:.04em}}
+@media(max-width:375px){.wrap{width:calc(100% - 20px)}.trials{gap:4px}.trials button{font-size:11px;padding:5px 6px}.voice-tile{gap:10px}.notice{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important}}
+
+.sprite{position:absolute;left:-9999px;width:0;height:0;pointer-events:none}
+.ico{display:inline-block;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.15em;flex:none}
+.notice{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#191f2d;border-left:2px solid #587bcc;line-height:1.35}
+.notice .ico{flex:none;width:14px;height:14px;color:#acc2fc}
+button .ico{width:13px;height:13px;margin-right:5px}
+#mic .ico{margin:0}
+#mic .mic-recording{display:none}
+#mic.listening .mic-idle{display:none}
+#mic.listening .mic-recording{display:inline}
+.voice-tile{gap:12px;margin-top:14px}
+.voice-tile .wave{width:clamp(25px,8vw,80px);opacity:.74}
+.voice-tile .wave:first-child{transform:scaleX(-1)}
+#inlineError:not(:empty){margin:7px auto 0;border-left:2px solid #f08ba9;background:#291c2b;color:#ffd3e0;text-align:left;font-size:11px;padding:5px 8px;width:min(100%,680px)}
+.transcript-head{margin-top:11px}
+#turnCount{color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.toolbar-label{font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+@media(max-width:650px){.toolbar-label{width:100%}.trials button,.toolbar #newCall,.rail button,.results button{min-height:44px}.settings label{min-height:33px}}
+</style>
+</head>
+<body>
+<!-- Lucide Icons, ISC; Feather-derived icons, MIT. See THIRD_PARTY_NOTICES.txt. -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><symbol id="icon-audio-lines" viewBox="0 0 24 24"><path d="M2 10v3" />
+  <path d="M6 6v11" />
+  <path d="M10 3v18" />
+  <path d="M14 8v7" />
+  <path d="M18 5v13" />
+  <path d="M22 10v3" /></symbol><symbol id="icon-mic" viewBox="0 0 24 24"><path d="M12 19v3" />
+  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+  <rect x="9" y="2" width="6" height="13" rx="3" /></symbol><symbol id="icon-phone" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" /></symbol><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" />
+  <path d="M12 16v-4" />
+  <path d="M12 8h.01" /></symbol><symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+  <path d="M3 3v5h5" /></symbol><symbol id="icon-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+  <path d="m21.854 2.147-10.94 10.939" /></symbol><symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="icon-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol></svg>
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="DantaVaani home"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-phone"></use></svg><span>Danta<span>Vaani</span></span></a><span class="workspace">Private simulation</span></div></header>
+<main class="wrap">
+<p class="notice" role="note"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-info"></use></svg><span><strong>Sandbox only. Don’t share personal information.</strong> Three scripted voices. Examples run the demo workflow once on the server; nothing is booked or sent outside the sandbox. Your browser may send microphone audio to its speech provider; this app only sends the selected example name.</span></p>
+<div class="toolbar"><div class="trial-group"><span class="toolbar-label" id="samples">Sample calls</span><div class="trials" role="group" aria-labelledby="samples">
+      <button data-demo="booking" aria-pressed="false">Sandbox booking</button>
+      <button data-demo="emergency" aria-pressed="false">Urgent callback</button>
+      
+      <button data-demo="query" aria-pressed="false">Fees &amp; timings</button>
+    </div></div><button type="button" id="newCall"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-rotate-ccw"></use></svg>New call</button></div>
+<div class="console">
+ <section class="call" aria-labelledby="call-heading">
+  <span class="call-status" id="callStatus" role="status">Ready for a demo call</span>
+  <h1 id="call-heading">Call DantaVaani</h1><p class="call-deck">English, Hindi or Hinglish</p>
+  <div class="voice-tile"><span class="wave"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-audio-lines"></use></svg></span><button id="mic" type="button" aria-label="Start microphone" aria-pressed="false" title="Tap and speak"><svg aria-hidden="true" focusable="false" class="ico mic-idle" viewBox="0 0 24 24"><use href="#icon-mic"></use></svg><svg aria-hidden="true" focusable="false" class="ico mic-recording" viewBox="0 0 24 24"><use href="#icon-square"></use></svg></button><span class="wave"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-audio-lines"></use></svg></span></div>
+  <span class="mic-caption" id="micCaption">Press to speak</span>
+  <div id="interim" role="status"></div><div id="inlineError" role="alert"></div>
+  <div class="transcript-head"><span class="kicker">Transcript</span><span id="turnCount">No turns</span></div>
+  <div id="chat" role="log" aria-live="polite" aria-label="Call transcript"></div>
+  <template id="callEmpty"><div class="chat-empty"><strong>No messages yet.</strong>Pick a fixed sample above, or say “book an appointment.”</div></template>
+  <div class="controls"><div class="settings">
+<label><input type="checkbox" id="tts" checked> Play scripted agent dialogue</label><span id="audioProvider" class="smallcap" aria-live="polite">Bundled audio</span>
+<button id="replayDemo" type="button" hidden>Replay dialogue</button>
+</div></div><audio id="agentAudio" preload="none"></audio>
+ </section>
+ <aside class="rail" aria-labelledby="agent-heading">
+  <header class="rail-head"><h2 id="agent-heading">Agent timeline</h2><button id="clearLog" type="button">Clear log</button></header>
+  <ol class="pipeline" aria-label="Agent workflow">
+   <li id="stageVoice"><strong>Voice</strong><span>Ready</span></li>
+   <li id="stageTriage"><strong>Triage</strong><span>Standby</span></li>
+   <li id="stageAction"><strong>Action</strong><span>Standby</span></li>
+  </ol>
+  <div class="event-title kicker">Recent events</div>
+  <div class="log-scroll" id="log" role="log" aria-label="Agent events"></div>
+  <div class="modes" id="modes" aria-label="Execution modes"></div>
+ </aside>
+</div>
+<details class="results" id="desk" hidden>
+ <summary>Clinic results <svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-chevron-down"></use></svg><span class="result-count" id="resultCount"></span></summary>
+ <div class="desk-data">
+  <header class="card-head"><h2 id="clinicName">Sandbox results</h2><button id="reset" type="button">Reset demo data</button></header>
+  <div class="kpis">
+   <div class="kpi"><div class="n" id="kBooked">—</div><div class="l">Demo records</div></div>
+   <div class="kpi"><div class="n" id="kAlerts">—</div><div class="l">Review requests</div></div>
+   <div class="kpi"><div class="n" id="kFree">—</div><div class="l">Real availability</div></div>
+  </div>
+  <div class="sub">Workflow result</div>
+  <div id="alerts"><div class="empty">No example has completed.</div></div>
+  <div class="sub" hidden>Scheduled records</div>
+  <div class="table-wrap" hidden><table><thead><tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead><tbody id="appts"></tbody></table></div>
+ </div>
+</details>
+</main>
+<footer class="wrap">Local simulation only · Not connected to a clinic</footer>
+
+<script defer src="./voice-cues.js"></script>
+<script defer src="./demo.js"></script>
+</body></html>

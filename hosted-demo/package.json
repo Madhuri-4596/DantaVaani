@@ -1,0 +1,19 @@
+{
+  "name": "dantavaani",
+  "version": "1.0.0",
+  "description": "DantaVaani — Hinglish voice receptionist for Indian dental clinics, built as a multi-agent system (Voice, Triage, Action agents).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "dev": "node local-preview.cjs",
+    "build": "node voice-build/build.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "license": "MIT"
+}

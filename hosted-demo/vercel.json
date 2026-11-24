@@ -1,0 +1,5 @@
+{
+  "framework": "express",
+  "outputDirectory": ".",
+  "buildCommand": "DANTAVAANI_GENERATE_ELEVENLABS=true npm run build"
+}
