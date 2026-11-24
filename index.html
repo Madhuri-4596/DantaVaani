@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Try DantaVaani with example dental receptionist requests. No clinic is connected.">
+<meta name="theme-color" content="#edf2f8">
+<title>DantaVaani • Dental reception demo</title>
+<link rel="stylesheet" href="./styles.css">
+<script defer src="./app.js"></script>
+</head>
+<body>
+<!-- Lucide ISC, plus MIT for Feather-derived assets; see THIRD_PARTY_NOTICES.txt. -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><symbol id="icon-audio-lines" viewBox="0 0 24 24"><path d="M2 10v3" />
+  <path d="M6 6v11" />
+  <path d="M10 3v18" />
+  <path d="M14 8v7" />
+  <path d="M18 5v13" />
+  <path d="M22 10v3" /></symbol><symbol id="icon-mic" viewBox="0 0 24 24"><path d="M12 19v3" />
+  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+  <rect x="9" y="2" width="6" height="13" rx="3" /></symbol><symbol id="icon-phone" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" /></symbol><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" />
+  <path d="M12 16v-4" />
+  <path d="M12 8h.01" /></symbol><symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+  <path d="M3 3v5h5" /></symbol><symbol id="icon-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+  <path d="m21.854 2.147-10.94 10.939" /></symbol><symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="icon-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol></svg>
+<header class="top">
+ <div class="wrap masthead">
+  <a class="brand" href="./"><span class="mark"><svg aria-hidden="true"><use href="#icon-phone"></use></svg></span><span>Danta<span>Vaani</span></span></a>
+  <span class="mode"><i></i> Demo mode</span>
+ </div>
+</header>
+<main class="wrap" id="main">
+ <div class="intro">
+  <p class="eyebrow">DENTAL RECEPTION &nbsp;/&nbsp; WALKTHROUGH</p>
+  <h1>A call to the clinic.</h1>
+  <p>Try a request and see how it is routed. No clinic is connected.</p>
+ </div>
+ <section class="call" aria-labelledby="call-heading">
+  <div class="call-top">
+   <div><span class="smallcap">DEMO LINE</span><h2 id="call-heading">DantaVaani reception</h2></div>
+   <span class="connection" id="connection" data-state="ready" role="status"><i></i><span id="connectionText">Ready</span></span>
+  </div>
+  <div class="station">
+   <div class="halo" aria-hidden="true"></div>
+   <button type="button" class="mic" id="mic" aria-describedby="disclosure" aria-label="Start microphone" aria-pressed="false">
+    <svg class="mic-icon" aria-hidden="true"><use href="#icon-mic"></use></svg><svg class="stop-icon" aria-hidden="true"><use href="#icon-square"></use></svg>
+   </button>
+   <div class="quick">
+    <strong id="micCaption">Tap to speak</strong>
+    <span>Try “book an appointment” or “check fees.”</span>
+   </div>
+  </div>
+  <p class="disclosure" id="disclosure"><svg aria-hidden="true"><use href="#icon-info"></use></svg><span>Use example commands only. Do not share personal details. Your browser may send microphone audio to its speech provider. This site does not store or display transcripts. No real booking, callback, or medical advice.</span></p>
+  <div class="call-error" id="callError" role="alert"></div>
+ </section>
+ <section aria-labelledby="samples" class="samples">
+  <div class="samplehead"><h2 id="samples">Practice without a mic</h2><label class="voice-toggle"><input id="speak" type="checkbox"> Read replies aloud</label></div>
+  <div class="actions" aria-label="Sample requests">
+   <button type="button" data-sample="booking">Book a visit<svg aria-hidden="true"><use href="#icon-chevron-down"></use></svg></button>
+   <button type="button" data-sample="urgent">Urgent callback<svg aria-hidden="true"><use href="#icon-chevron-down"></use></svg></button>
+   <button type="button" data-sample="fees">Check fees<svg aria-hidden="true"><use href="#icon-chevron-down"></use></svg></button>
+  </div>
+ </section>
+ <section class="trace" id="trace" hidden aria-labelledby="trace-heading">
+  <header><div><p class="eyebrow">HAND-OFF</p><h2 id="trace-heading" tabindex="-1">What happens next</h2></div><button id="reset" type="button"><svg aria-hidden="true"><use href="#icon-rotate-ccw"></use></svg>Reset</button></header>
+  <ol class="stages">
+   <li data-stage="0"><span class="step">01</span><div><strong>Voice</strong><span>Waiting for an example request.</span></div></li>
+   <li data-stage="1"><span class="step">02</span><div><strong>Triage</strong><span>Waiting for the hand-off.</span></div></li>
+   <li data-stage="2"><span class="step">03</span><div><strong>Action</strong><span>Waiting for status.</span></div></li>
+  </ol>
+  <div class="result" id="result" hidden role="status"><span class="eyebrow">CONNECTION STATUS</span><strong id="resultTitle"></strong><p id="resultText"></p></div>
+ </section>
+</main>
+<footer class="wrap"><span>DantaVaani &nbsp;/&nbsp; Public demo</span><a href="./THIRD_PARTY_NOTICES.txt">Open-source notices</a></footer>
+</body>
+</html>

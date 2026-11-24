@@ -1,0 +1,76 @@
+:root{color-scheme:light;--paper:#edf2f8;--ink:#1d2941;--muted:#52617b;--line:#c5d0e0;--blue:#163482;--white:#fafdff;--accent:#345fed;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;color:var(--ink);background:var(--paper)}
+button,input{font:inherit}
+button:not(:disabled){cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid #3c6af8;outline-offset:4px}
+svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sprite{position:absolute;width:0;height:0;pointer-events:none}
+.wrap{width:min(100% - 42px,750px);margin-inline:auto}
+.top{border-bottom:1px solid var(--line);background:var(--white)}
+.masthead{height:61px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);font-weight:840;letter-spacing:-.05em;font-size:21px}
+.brand span span{color:#355baf}
+.mark{display:grid;place-items:center;width:32px;height:32px;border-radius:6px;background:#ebefff;color:var(--blue)}
+.mark svg{width:16px;height:16px}
+.mode,.connection{display:inline-flex;align-items:center;gap:6px;font-weight:720;font-size:.75rem}
+.mode{color:#4c5871}
+.mode i,.connection i{width:7px;height:7px;border-radius:50%;background:#607ac3}
+main{padding-top:26px}
+.intro{margin:0 0 21px}
+.eyebrow,.smallcap{font-weight:800;letter-spacing:.13em;font-size:.63rem;margin:0;color:#4e5d79}
+h1{font:500 clamp(2.75rem,8vw,5rem)/.98 Georgia,Cambria,serif;letter-spacing:-.061em;margin:7px 0 9px}
+.intro>p:last-child{color:#4b5972;margin:0;font-size:.94rem}
+.call{display:grid;position:relative;background:#142d73;color:#fff;border-radius:14px;padding:18px 20px 13px;overflow:hidden}
+.call-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:relative;z-index:1}
+.call .smallcap{color:#c1cffa}
+.call h2{font-size:1.13rem;letter-spacing:-.025em;line-height:1.25;margin:2px 0}
+.connection{border:1px solid #667fc0;border-radius:7px;padding:4px 7px;color:#ebf1ff;white-space:nowrap}
+.connection i{background:#95b7ff}
+.connection[data-state=listening] i{background:#ffabb7;box-shadow:0 0 0 3px #ffabb74d}
+.connection[data-state=working] i{background:#ffd999}
+.connection[data-state=error] i{background:#ffabb7}
+.station{position:relative;isolation:isolate;min-height:174px;display:grid;justify-items:center;align-content:center;gap:9px;overflow:hidden}
+.halo{position:absolute;z-index:-1;width:248px;height:248px;left:50%;top:48%;transform:translate(-50%,-50%);border:1px solid #5973b478;border-radius:50%;box-shadow:0 0 0 19px #7b93cb21,0 0 0 39px #5878bb19,0 0 0 63px #5878bb18;pointer-events:none}
+.mic{display:grid;place-items:center;width:77px;height:77px;border:none;border-radius:50%;background:#f5f8ff;color:#132e81;box-shadow:0 0 0 8px #9bb3ff39,0 7px 26px #0a184ca3;transition:transform .18s,background .18s}
+.mic:not(:disabled):hover{transform:translateY(-2px);background:#e6edff}
+.mic:focus-visible{outline-color:#e4edff}
+.mic:disabled{opacity:.5}
+.mic svg{width:32px;height:32px}
+.mic .stop-icon,.mic[aria-pressed=true] .mic-icon{display:none}
+.mic[aria-pressed=true]{color:#782c42;background:#ffdbe3}
+.mic[aria-pressed=true] .stop-icon{display:block}
+.quick{text-align:center;display:grid;gap:0}
+.quick strong{font-size:.86rem;color:#fff}
+.quick span{font-size:.71rem;color:#dae4ff}
+.disclosure{margin:1px 0 0;padding-top:9px;border-top:1px solid #7187c166;display:flex;gap:7px;color:#dbe5fe;font-size:.67rem;line-height:1.45}
+.disclosure svg{width:14px;height:14px}
+.call-error:not(:empty){margin-top:7px;display:block;padding:5px 8px;border-left:2px solid #ffc2d0;background:#531e4c;color:#fff1f4;font-size:.77rem}
+.samples{margin-top:15px}
+.samplehead{display:flex;justify-content:space-between;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.samplehead h2,.trace h2{font-size:.87rem;letter-spacing:-.013em;margin:0}
+.voice-toggle{display:inline-flex;align-items:center;gap:5px;min-height:34px;color:#465575;font-size:.75rem}
+.voice-toggle input{accent-color:#3155cb;width:16px;height:16px}
+.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.actions button,#reset{min-height:42px;background:var(--white);border:1px solid #a7b5cc;color:#253657;border-radius:7px;font-size:.78rem;font-weight:740;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;gap:3px;text-align:left;line-height:1.2}
+.actions button:hover:not(:disabled),#reset:hover{border-color:#3d59a2;background:#ecf0ff}
+.actions button:disabled{opacity:.56}
+.actions button svg,#reset svg{width:14px;height:14px}
+.actions button svg{transform:rotate(-90deg)}
+.trace{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.trace header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trace header h2{font-size:1.2rem}
+.stages{list-style:none;padding:0;margin:9px 0 13px}
+.stages li{display:flex;align-items:flex-start;gap:10px;position:relative;padding:0 0 8px}
+.stages li:not(:last-child):before{content:"";position:absolute;z-index:-1;left:14px;top:12px;border-left:1px solid var(--line);height:100%}
+.step{display:grid;place-items:center;width:29px;height:29px;flex:none;background:#e0e7f3;border-radius:50%;font-size:.65rem;font-weight:750}
+.stages li[data-state=complete] .step{color:white;background:var(--blue)}
+.stages li>div{display:grid}
+.stages li strong{font-size:.8rem}.stages li div span{font-size:.75rem;color:var(--muted)}
+.result{border-left:3px solid var(--blue);padding:8px 11px;background:#e9eeff;margin-bottom:12px}
+.result strong{display:block;font-size:.95rem}.result p{margin:0;font-size:.8rem;color:#37496c}
+footer{display:flex;gap:8px;justify-content:space-between;color:#59627a;border-top:1px solid var(--line);padding:9px 0 15px;margin-top:24px!important;font-size:.65rem}
+footer a{color:#344f9b}
+@media(max-width:450px){.wrap{width:calc(100% - 26px)}main{padding-top:19px}.call{padding:12px 11px 9px}.station{min-height:156px}.call h2{font-size:1rem}.actions button{min-height:48px}.intro>p:last-child{font-size:.83rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
