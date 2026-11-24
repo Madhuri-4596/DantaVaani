@@ -9,6 +9,8 @@ const callButtons=[...document.querySelectorAll('[data-call-example]')];
 const supportedLocales=new Set(['en-IN','hi-IN','kn-IN','ta-IN','te-IN','mr-IN','bn-IN']);
 const scenarioNames={booking:'Sandbox booking',emergency:'Practice callback',query:'Fees information'};
 let pending=null,callStartedAt=0,callClock=null;
+let liveMic=false,resumeTimer=null,promptTimer=null,promptEpoch=0,waitingForFollowup=false,liveResult='';
+let speechBusy=false;
 function modalText(role,text){if(!dialog.open)return; $('browserSpeaker').textContent=role; $('browserCaption').textContent=text;}
 function modalState(text,state='ready'){if(!dialog.open)return; $('browserCallStatus').textContent=text; $('browserAvatar').dataset.state=state;}
 function modalNote(text=''){$('browserError').textContent=text;}
@@ -47,14 +49,62 @@ function cancelMic(){
  const old=rec;rec=null;
  if(old)try{old.abort();}catch{}
  $('mic').classList.remove('listening');$('mic').setAttribute('aria-pressed','false');$('mic').setAttribute('aria-label','Start example command');
- $('browserMic').setAttribute('aria-pressed','false');$('browserMicText').textContent=$('browserMic').disabled?'Mic unavailable':'Turn on mic';
+ updateLiveControl();
+}
+function updateLiveControl(){
+ $('browserMic').setAttribute('aria-pressed',String(liveMic));
+ $('browserMicText').textContent=$('browserMic').disabled?'Mic unavailable':liveMic?'Mute mic':'Unmute mic';
+}
+function stopPrompt(){
+ promptEpoch++;clearTimeout(promptTimer);promptTimer=null;
+ if(speechBusy)try{window.speechSynthesis.cancel();}catch{}
+ speechBusy=false;
+}
+function stopLive(){
+ liveMic=false;waitingForFollowup=false;liveResult='';
+ clearTimeout(resumeTimer);resumeTimer=null;stopPrompt();cancelMic();
+}
+function scheduleListening(){
+ clearTimeout(resumeTimer);
+ if(!dialog.open||!liveMic||busy||rec||speechBusy||expectedSrc)return;
+ resumeTimer=setTimeout(()=>{
+  resumeTimer=null;
+  if(dialog.open&&liveMic&&!busy&&!rec&&!speechBusy&&!expectedSrc)beginListen(true);
+ },180);
+}
+function speakPrompt(text){
+ if(!dialog.open||!liveMic)return;
+ cancelMic();stopPrompt();
+ modalText('Voice Agent',text);
+ const synth=window.speechSynthesis, Utterance=window.SpeechSynthesisUtterance;
+ if(!$('tts').checked||!synth||!Utterance){scheduleListening();return;}
+ const stamp=promptEpoch;
+ function finish(){
+  if(stamp!==promptEpoch)return;
+  promptEpoch++;clearTimeout(promptTimer);promptTimer=null;speechBusy=false;scheduleListening();
+ }
+ try{
+  const line=new Utterance(text);line.lang='en-IN';line.rate=.96;
+  line.onend=line.onerror=finish;
+  speechBusy=true;modalState('Voice agent speaking','speaking');
+  promptTimer=setTimeout(()=>{if(stamp===promptEpoch){finish();synth.cancel();}},16000);
+  synth.speak(line);
+ }catch{finish();}
+}
+function continueCall(){
+ if(!dialog.open||!liveMic||busy||expectedSrc||speechBusy)return;
+ if(waitingForFollowup){
+  waitingForFollowup=false;
+  speakPrompt((liveResult?liveResult+'. ':'')+'What else can I help you with?');
+ }else scheduleListening();
 }
 function clearVoice(){
  replayEpoch++;voice=null;activeCaption=-1;elevenTurn=-1;mediaReady=false;expectedSrc='';
  audio.pause();showIdleVoice();
 }
-function reset(){
- revision++; busy=false;cancelMic();clearVoice();current=null;
+function reset(preserveLive=false){
+ revision++; busy=false;if(preserveLive===true){cancelMic();stopPrompt();}else stopLive();
+ clearVoice();current=null;
  $('chat').replaceChildren($('callEmpty').content.cloneNode(true));
  $('turnCount').textContent='No turns';
  $('desk').hidden=true;$('desk').open=false;
@@ -109,7 +159,8 @@ function failedPlayback(stamp,source){
   playOffline('booking',stamp);
  }else{
   showIdleVoice();
-  note('Audio could not play. Tap Replay dialogue to try again.');
+  note('Recorded dialogue could not play. You can keep speaking or tap Replay dialogue.');
+  continueCall();
  }
 }
 function playOffline(key,stamp){
@@ -141,7 +192,10 @@ audio.addEventListener('ended',()=>{
  if(!mediaReady||!audio.ended||audio.currentSrc!==expectedSrc)return;
  caption();
  if(elevenTurn>=0&&elevenTurn<2){elevenTurn++;playEleven(replayEpoch);}
- else modalState('Dialogue finished · Microphone is off');
+ else{
+  expectedSrc='';mediaReady=false;
+  if(liveMic)continueCall();else modalState('Dialogue finished · Microphone is off');
+ }
 });
 audio.addEventListener('error',()=>{
  if(expectedSrc&&(!audio.currentSrc||audio.currentSrc===expectedSrc))failedPlayback(replayEpoch,expectedSrc);
@@ -172,7 +226,9 @@ function desk(data){
 }
 async function run(key,button){
  if(busy||!Object.hasOwn(clipFor,key))return;
- reset();const epoch=revision;busy=true;current=key;
+ const keepLive=dialog.open&&liveMic;
+ reset(keepLive);const epoch=revision;busy=true;current=key;
+ waitingForFollowup=keepLive;liveResult='';
  if(button)button.setAttribute('aria-pressed','true');
  buttons.forEach(b=>b.disabled=true);callButtons.forEach(b=>b.disabled=true);revealReplay(true);
  status('Running isolated example','working');
@@ -184,15 +240,15 @@ async function run(key,button){
   if(epoch!==revision)return;
   $('log').replaceChildren();
   for(const event of data.events)log(event);
-  desk(data);
+  desk(data);liveResult=data.result.title;
    if(!$('tts').checked||activeCaption<0)append(data.result.detail,'DantaVaani');
   status('Sandbox example complete');
   if(!audio.paused&&mediaReady)modalState('Playing scripted agent dialogue','speaking');
  }catch{
   if(epoch!==revision)return;
-  clearVoice();current=null;revealReplay(false);status('Example unavailable');note('The server could not complete this example. No clinic was contacted.');
+  clearVoice();liveResult='This example is unavailable';current=null;revealReplay(false);status('Example unavailable');note('The server could not complete this example. No clinic was contacted.');
  }finally{
-  if(epoch===revision){busy=false;buttons.forEach(b=>{b.disabled=false;b.setAttribute('aria-pressed','false');});callButtons.forEach(b=>b.disabled=false);}
+  if(epoch===revision){busy=false;buttons.forEach(b=>{b.disabled=false;b.setAttribute('aria-pressed','false');});callButtons.forEach(b=>b.disabled=false);continueCall();}
  }
 }
 buttons.forEach(b=>b.addEventListener('click',()=>run(b.dataset.demo,b)));
@@ -203,14 +259,19 @@ $('replayDemo').addEventListener('click',()=>{
  if(!current)return;
  $('chat').replaceChildren();$('turnCount').textContent='No turns';note();play(current,true);
 });
-$('tts').addEventListener('change',()=>{if(!$('tts').checked)clearVoice();});
+$('tts').addEventListener('change',()=>{if(!$('tts').checked){clearVoice();stopPrompt();continueCall();}});
 const Speech=window.isSecureContext!==false&&(window.SpeechRecognition||window.webkitSpeechRecognition);
 const phraseToScenario=new Map([
+ ['i want to book an appointment','booking'],['can i book an appointment','booking'],
+ ['id like to book an appointment','booking'],['i d like to book an appointment','booking'],
+ ['appointment book karo','booking'],['fees kitni hai','query'],['फीस कितनी है','query'],
  ['book an appointment','booking'],['book a visit','booking'],['mujhe appointment book karna hai','booking'],
  ['अपॉइंटमेंट बुक करें','booking'],['check fees','query'],['what are the fees','query'],
  ['try urgent callback','emergency'],['practice callback','emergency'],['request a callback','emergency']
 ]);
-const confirmPhrases=new Set(['confirm','yes','run this example','haan','हाँ']);
+const confirmPhrases=new Set(['confirm','yes','yes please','run this example','haan','हाँ']);
+const cancelPhrases=new Set(['no','cancel','choose another','nahi','नहीं']);
+const hangupPhrases=new Set(['end call','hang up','goodbye']);
 function normalizeCommand(value){
  return String(value??'').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{M} ]+/gu,' ').replace(/\s+/g,' ').trim();
 }
@@ -218,20 +279,27 @@ function stageScenario(key){
  if(busy||!Object.hasOwn(clipFor,key))return;
  if(!dialog.open){run(key);return;}
  pending=key;$('browserConfirmRow').hidden=false;
- if(rec)cancelMic();clearVoice();modalNote();
- modalState('Ready to confirm · Microphone is off');
- modalText('Reception',scenarioNames[key]+' selected. Say “confirm” or tap Run this example.');
+ cancelMic();clearVoice();modalNote();
+ const prompt=scenarioNames[key]+' selected. Say “confirm” or “choose another.”';
+ if(liveMic)speakPrompt(prompt);
+ else{modalState('Ready to confirm · Microphone is off');modalText('Voice Agent',prompt+' You can also tap Run this example.');}
 }
 function confirmScenario(){
  const key=pending;
  if(!key||busy)return;
- clearConfirmation();if(dialog.open)$('browserCallStatus').focus();run(key);
+ clearConfirmation();if(dialog.open)$('browserCallStatus').focus();return run(key);
+}
+function chooseAnother(){
+ clearConfirmation();modalNote();
+ if(liveMic)speakPrompt('No problem. What would you like to try instead?');
+ else{modalState('Ready · Microphone is off');modalText('Voice Agent','Choose another example.');}
 }
 function beginListen(inOverlay){
- if(!Speech||busy)return;
- if(rec){cancelMic();status('Ready · Microphone is off');return;}
- clearVoice();note();let recognizer;
- try{recognizer=new Speech();}catch{note('Microphone unavailable. Choose an example.');return;}
+ if(!Speech||busy||inOverlay&&(!dialog.open||!liveMic))return;
+ if(rec){if(!inOverlay){cancelMic();status('Ready · Microphone is off');}return;}
+ if(!inOverlay)clearVoice();
+ note();let recognizer;
+ try{recognizer=new Speech();}catch{stopLive();note('Microphone unavailable. Choose an example.');return;}
  rec=recognizer;
  const chosen=$('browserLocale').value;
  recognizer.lang=inOverlay&&supportedLocales.has(chosen)?chosen:'en-IN';
@@ -240,25 +308,45 @@ function beginListen(inOverlay){
   if(rec!==recognizer)return;
   const result=event.results?.[event.resultIndex??0];
   if(!result||result.isFinal===false)return;
-  // Never write the raw words into the page or send them to the sandbox API.
+  // Map in the browser. Never render or transmit caller transcripts.
   const command=normalizeCommand(result[0]?.transcript);
   const scenario=phraseToScenario.get(command);
   cancelMic();
+  if(dialog.open&&hangupPhrases.has(command)){closeBrowserCall();return;}
   if(dialog.open&&pending&&confirmPhrases.has(command)){confirmScenario();return;}
+  if(dialog.open&&pending&&cancelPhrases.has(command)){chooseAnother();return;}
   if(scenario){stageScenario(scenario);return;}
+  if(inOverlay&&liveMic){speakPrompt(pending?'Please say confirm or choose another.':'Try saying book an appointment, check fees, or practice callback.');return;}
   status('No example recognized · Microphone is off');
-  note(dialog.open&&pending?'Say “confirm” or tap Run this example.':'Say “book an appointment” or “check fees”, or choose an example. Do not share personal details.');
+  note('Say “book an appointment” or “check fees”, or choose an example. Do not share personal details.');
  };
- recognizer.onerror=()=>{if(rec===recognizer){cancelMic();status('Microphone unavailable');note('Your browser could not use the microphone. Choose an example instead.');}};
- recognizer.onend=()=>{if(rec===recognizer){cancelMic();status('No command captured · Microphone is off');}};
+ recognizer.onerror=event=>{
+  if(rec!==recognizer)return;
+  cancelMic();
+  if(inOverlay&&liveMic&&['no-speech','aborted'].includes(event?.error)){scheduleListening();return;}
+  stopLive();status('Microphone unavailable');note('Your browser could not use the microphone. Check permissions or choose an example.');
+ };
+ recognizer.onend=()=>{
+  if(rec!==recognizer)return;
+  cancelMic();
+  if(inOverlay&&liveMic)scheduleListening();else status('No command captured · Microphone is off');
+ };
  try{
   recognizer.start();$('mic').classList.add('listening');$('mic').setAttribute('aria-pressed','true');
-  $('mic').setAttribute('aria-label','Stop microphone');$('browserMic').setAttribute('aria-pressed','true');
-  $('browserMicText').textContent='Stop mic';status('Listening for an example command','listening');
- }catch{cancelMic();note('Could not start the microphone. Try a sample.');}
+  $('mic').setAttribute('aria-label','Stop microphone');updateLiveControl();
+  status(inOverlay?(pending?'Listening for confirmation':'Listening · your turn'):'Listening for an example command','listening');
+ }catch{stopLive();note('Could not start the microphone. Try a sample.');}
+}
+function toggleLive(){
+ if(!dialog.open||!Speech)return;
+ if(liveMic){
+  stopLive();modalState(expectedSrc?'Playing scripted agent dialogue':'Microphone muted',expectedSrc?'speaking':'ready');return;
+ }
+ liveMic=true;updateLiveControl();modalNote();
+ if(!busy&&!expectedSrc)speakPrompt(pending?'Say confirm or choose another.':'Hi, this is DantaVaani reception. How can I help? Try saying book an appointment or check fees.');
 }
 function closeBrowserCall(){
- clearInterval(callClock);callClock=null;
+ stopLive();clearVoice();clearInterval(callClock);callClock=null;
  if(dialog.open)dialog.close();
 }
 function startBrowserCall(){
@@ -280,16 +368,14 @@ $('startBrowserCall').addEventListener('click',startBrowserCall);
 $('browserHang').addEventListener('click',closeBrowserCall);
 dialog.addEventListener('close',()=>{clearInterval(callClock);callClock=null;reset();$('startBrowserCall').focus();});
 $('browserConfirm').addEventListener('click',confirmScenario);
-$('browserBack').addEventListener('click',()=>{
- clearConfirmation();modalNote();modalState('Ready · Microphone is off');modalText('Reception','Choose another example.');
-});
+$('browserBack').addEventListener('click',chooseAnother);
 callButtons.forEach(b=>b.addEventListener('click',()=>stageScenario(b.dataset.callExample)));
-$('browserReplay').addEventListener('click',()=>{if(current){note();play(current,true);}});
+$('browserReplay').addEventListener('click',()=>{if(current){cancelMic();stopPrompt();note();play(current,true);}});
 $('mic').disabled=!Speech;
 $('browserMic').disabled=!Speech;
 $('mic').addEventListener('click',()=>beginListen(false));
-$('browserMic').addEventListener('click',()=>beginListen(true));
+$('browserMic').addEventListener('click',toggleLive);
 if(!Speech){$('browserMicText').textContent='Mic unavailable';$('micCaption').textContent='Microphone not supported. Choose an example above.';}
 else $('micCaption').textContent='Say “book an appointment” or choose an example';
-window.addEventListener('pagehide',()=>{clearInterval(callClock);cancelMic();clearVoice();});
+window.addEventListener('pagehide',()=>{clearInterval(callClock);stopLive();clearVoice();});
 reset();

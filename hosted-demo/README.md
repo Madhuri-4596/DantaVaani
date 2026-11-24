@@ -20,5 +20,11 @@ The app always includes offline recordings. To create three alternate booking re
 ### Public data boundary
 The public workflow endpoint accepts only an empty POST selecting one of three predefined identifiers: booking, emergency (practice review only), or query. It returns the scenario key, simple allowlisted hand-off/status metadata, non-identifying result copy and two aggregate counts for that run. It does not return caller text, contact details, IDs, clinic hours, fees, appointments, session data or a shared feed. No remote text model, telephone webhook or clinic integration is included. Optional build-time synthesis sends only the three reviewed synthetic booking lines, predefined voice IDs, and model configuration to ElevenLabs with a build secret in its authorization header.
 
-### Full-screen browser call
-Select Call DantaVaani to open the full-screen conversation. The microphone remains off until you turn it on. Choose a listed example or say an allowed short command, then confirm before any sandbox request is made. End call or Escape stops playback and clears this run’s result from the screen. Locale selection sets browser recognition only; replies are recorded in English. DantaVaani sends no raw voice transcript, and the sandbox confirmation sends a bodyless POST with only the example identifier. To test without microphone permission, use the in-call sample buttons.
+### Try the hands-free browser call
+
+1. Click **Call DantaVaani**, then **Unmute mic** once and allow microphone access.
+2. Wait for **Listening**, then say “Book an appointment”, “Check fees”, or “Practice callback”. Try “Mujhe appointment book karna hai” for Hinglish.
+3. The Voice Agent reads back the selected example. Say “Confirm” to run it, or “Choose another” to change it. The mic pauses during replies and reopens automatically for the next turn.
+4. Say “End call” during a listening turn or click **End call** anytime. **Mute mic** stops recognition without ending the call.
+
+This is a voice-command demo, not an open conversation or a real phone call. The browser generates the greeting and short prompts; the three-agent scenario dialogue is recorded. Supported speech recognition depends on the browser and its permissions. The language selector changes recognition only, not the language of the replies. If the mic is unavailable, use the sample buttons. Do not enter names, contact details, or patient information.
