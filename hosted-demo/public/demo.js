@@ -2,6 +2,7 @@
 const $=id=>document.getElementById(id);
 const buttons=[...document.querySelectorAll('[data-demo]')];
 const audio=$('agentAudio');
+const preview=$('voicePreview');
 const clipFor={booking:'booking',emergency:'urgent',query:'fees'};
 const watched=['Voice','Triage','Action'];
 const dialog=$('browserCall');
@@ -98,8 +99,9 @@ function continueCall(){
   speakPrompt((liveResult?liveResult+'. ':'')+'What else can I help you with?');
  }else scheduleListening();
 }
+function stopPreview(){if(preview&&!preview.paused){preview.pause();preview.currentTime=0;}}
 function clearVoice(){
- replayEpoch++;voice=null;activeCaption=-1;elevenTurn=-1;mediaReady=false;expectedSrc='';
+ stopPreview();replayEpoch++;voice=null;activeCaption=-1;elevenTurn=-1;mediaReady=false;expectedSrc='';
  audio.pause();showIdleVoice();
 }
 function reset(preserveLive=false){
@@ -115,9 +117,9 @@ function reset(preserveLive=false){
  note();clearLog();status('Ready · Microphone is off');
  modalText('Reception','Say “book an appointment” or choose a sample below.');
 }
-function append(text,who){
+function append(text,who,caller=false){
  $('chat').querySelector('.chat-empty')?.remove();
- const article=document.createElement('div');article.className='bubble agent';
+ const article=document.createElement('div');article.className=caller?'bubble caller':'bubble agent';
  const sender=document.createElement('div');sender.className='who';sender.textContent=who;
  article.append(sender,document.createTextNode(text));$('chat').append(article);
  $('chat').scrollTop=$('chat').scrollHeight;
@@ -229,6 +231,7 @@ async function run(key,button){
  const keepLive=dialog.open&&liveMic;
  reset(keepLive);const epoch=revision;busy=true;current=key;
  waitingForFollowup=keepLive;liveResult='';
+ append(scenarioNames[key],'You',true);
  if(button)button.setAttribute('aria-pressed','true');
  buttons.forEach(b=>b.disabled=true);callButtons.forEach(b=>b.disabled=true);revealReplay(true);
  status('Running isolated example','working');
@@ -242,7 +245,7 @@ async function run(key,button){
   for(const event of data.events)log(event);
   desk(data);liveResult=data.result.title;
    if(!$('tts').checked||activeCaption<0)append(data.result.detail,'DantaVaani');
-  status('Sandbox example complete');
+  status($('tts').checked?'Sandbox example complete':'Sandbox example complete · Speech off');
   if(!audio.paused&&mediaReady)modalState('Playing scripted agent dialogue','speaking');
  }catch{
   if(epoch!==revision)return;
@@ -259,7 +262,21 @@ $('replayDemo').addEventListener('click',()=>{
  if(!current)return;
  $('chat').replaceChildren();$('turnCount').textContent='No turns';note();play(current,true);
 });
-$('tts').addEventListener('change',()=>{if(!$('tts').checked){clearVoice();stopPrompt();continueCall();}});
+$('tts').addEventListener('change',()=>{
+ if(!$('tts').checked){
+  clearVoice();stopPrompt();continueCall();$('audioProvider').textContent='Speech off';
+ }else{showIdleVoice();if(current&&!busy&&!dialog.open)play(current,true);}
+});
+$('testVoice').addEventListener('click',()=>{
+ if(dialog.open||busy)return;
+ cancelMic();clearVoice();note();$('tts').checked=true;
+ $('audioProvider').textContent='Playing voice preview';
+ const failed=()=>{showIdleVoice();note('The browser blocked audio playback. Check the tab’s sound settings and tap Test voice again.');};
+ try{preview.currentTime=0;Promise.resolve(preview.play()).catch(failed);}catch{failed();}
+});
+preview.addEventListener('ended',()=>{
+ if(!expectedSrc)showIdleVoice();
+});
 const Speech=window.isSecureContext!==false&&(window.SpeechRecognition||window.webkitSpeechRecognition);
 const phraseToScenario=new Map([
  ['i want to book an appointment','booking'],['can i book an appointment','booking'],
@@ -272,12 +289,19 @@ const phraseToScenario=new Map([
 const confirmPhrases=new Set(['confirm','yes','yes please','run this example','haan','हाँ']);
 const cancelPhrases=new Set(['no','cancel','choose another','nahi','नहीं']);
 const hangupPhrases=new Set(['end call','hang up','goodbye']);
+function exampleFor(command){
+ const direct=phraseToScenario.get(command);
+ if(direct)return direct;
+ if(/^(?:(?:hi|hello|hey) )?(?:(?:can|could|may) (?:i|you) |i (?:want|need|would like) to |please )?(?:(?:help me )?book|schedule|make) (?:me )?(?:(?:a|an|my|the) )?(?:dental |dentist )?(?:appointment|visit|checkup|check up)(?: please)?$/.test(command))return 'booking';
+ if(/^(?:(?:can|could) you (?:tell|show) me |(?:what|how much) (?:are|is) |please )?(?:the )?(?:(?:dental |clinic |consultation |appointment )?(?:fee|fees|cost|price))(?: please)?$/.test(command))return 'query';
+ return null;
+}
 function normalizeCommand(value){
  return String(value??'').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{M} ]+/gu,' ').replace(/\s+/g,' ').trim();
 }
 function stageScenario(key){
  if(busy||!Object.hasOwn(clipFor,key))return;
- if(!dialog.open){run(key);return;}
+ if(!dialog.open)return run(key);
  pending=key;$('browserConfirmRow').hidden=false;
  cancelMic();clearVoice();modalNote();
  const prompt=scenarioNames[key]+' selected. Say “confirm” or “choose another.”';
@@ -310,7 +334,7 @@ function beginListen(inOverlay){
   if(!result||result.isFinal===false)return;
   // Map in the browser. Never render or transmit caller transcripts.
   const command=normalizeCommand(result[0]?.transcript);
-  const scenario=phraseToScenario.get(command);
+  const scenario=exampleFor(command);
   cancelMic();
   if(dialog.open&&hangupPhrases.has(command)){closeBrowserCall();return;}
   if(dialog.open&&pending&&confirmPhrases.has(command)){confirmScenario();return;}
@@ -355,15 +379,23 @@ function startBrowserCall(){
  reset();dialog.showModal();callStartedAt=Date.now();overlayTime();
  callClock=setInterval(overlayTime,1000);
 }
-// The text box maps only a fixed phrase to an existing sample. It never sends text.
-$('exampleCommandForm')?.addEventListener('submit',event=>{
- event.preventDefault();if(busy)return;
- const input=$('exampleCommand');
- const sample=phraseToScenario.get(normalizeCommand(input.value));
- input.value='';
- if(!sample){note('Try “book an appointment”, “practice callback”, or “check fees”. Use sample commands only.');return;}
- note();stageScenario(sample);
-});
+// Both inputs select only reviewed examples. Caller text stays out of chat history and API payloads.
+function bindCommand(formId,inputId){
+ $(formId)?.addEventListener('submit',event=>{
+  event.preventDefault();if(busy)return;
+  const input=$(inputId);
+  const command=normalizeCommand(input.value);
+  input.value='';
+  if(dialog.open&&hangupPhrases.has(command)){closeBrowserCall();return;}
+  if(dialog.open&&pending&&confirmPhrases.has(command)){confirmScenario();return;}
+  if(dialog.open&&pending&&cancelPhrases.has(command)){chooseAnother();return;}
+  const key=exampleFor(command);
+  if(!key){note('This demo understands booking, fees, and callback commands. Try “Book an appointment.” Do not share personal details.');return;}
+  note();return stageScenario(key);
+ });
+}
+bindCommand('exampleCommandForm','exampleCommand');
+bindCommand('browserCommandForm','browserCommand');
 $('startBrowserCall').addEventListener('click',startBrowserCall);
 $('browserHang').addEventListener('click',closeBrowserCall);
 dialog.addEventListener('close',()=>{clearInterval(callClock);callClock=null;reset();$('startBrowserCall').focus();});

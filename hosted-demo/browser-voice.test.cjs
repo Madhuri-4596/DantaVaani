@@ -27,6 +27,9 @@ function fixture(provider,withSpeech=false){
   play(){this.paused=false;playCalls.push(this.src);return Promise.resolve();},
   at(type,url,time=0){this.currentSrc=url;this.currentTime=time;this.ended=type==='ended';if(this.ended)this.paused=true;this.listeners[type]();}
  });
+ const preview=Object.assign(get('voicePreview'),{
+  pause(){this.paused=true;},play(){this.paused=false;return Promise.resolve();}
+ });
  get('tts').checked=true;
  const buttons=['booking','emergency','query'].map(demo=>Object.assign(node(),{dataset:{demo}}));
  const manifest=provider?{
@@ -113,7 +116,7 @@ test('complete provider dialogue plays Voice, Triage, and Action in order',async
   assert.match(src,new RegExp('/'+role+'-agent\\.mp3$'));
   f.audio.at('playing',src);f.audio.at('ended',src);
  }
- assert.deepEqual(f.roles().filter(role=>role!=='DantaVaani'),['Voice Agent','Triage Agent','Action Agent']);
+ assert.deepEqual(f.roles().filter(role=>role!=='DantaVaani'&&role!=='You'),['Voice Agent','Triage Agent','Action Agent']);
  assert.equal(f.playCalls.length,3);
 });
 test('hands-free call greets, confirms by voice, waits for dialogue, then listens again',async()=>{
@@ -176,4 +179,39 @@ test('no speech restarts listening; mute and permission errors prevent restart',
  f.recognitions[2].onerror({error:'not-allowed'});f.advance();
  assert.equal(f.recognitions.length,3);
  assert.match(f.get('browserError').textContent,/Check permissions/);
+});
+
+test('typed booking accepts natural variants without exposing text; Test voice works even when speech is off',async()=>{
+ const f=fixture(false);
+ const field=f.get('exampleCommand');
+ const submit=()=>f.get('exampleCommandForm').listeners.submit({preventDefault(){}});
+ field.value='Could you help me book a dental appointment?';
+ await submit();
+ assert.equal(field.value,'');
+ assert.ok(f.roles().includes('You'));
+ assert.equal(f.requests.filter(r=>r.path==='./api/demo/booking').length,1);
+ assert.equal(f.requests.at(-1).opts.body,undefined);
+ f.get('tts').checked=false;f.get('tts').listeners.change();
+ assert.equal(f.audio.paused,true);
+ f.get('testVoice').listeners.click();
+ assert.equal(f.get('tts').checked,true);
+ assert.equal(f.get('voicePreview').paused,false);
+ assert.equal(f.requests.filter(r=>r.path.startsWith('./api')).length,1);
+ field.value='my personal details';
+ await submit();
+ assert.match(f.get('inlineError').textContent,/understands booking/);
+ assert.ok(!JSON.stringify(f.requests).includes('my personal details'));
+});
+test('type and confirm a command from inside the call screen',async()=>{
+ const f=fixture(false);
+ f.get('startBrowserCall').listeners.click();
+ const field=f.get('browserCommand');
+ const submit=()=>f.get('browserCommandForm').listeners.submit({preventDefault(){}});
+ field.value='What is the consultation fee?';await submit();
+ assert.match(f.get('browserCaption').textContent,/Fees information selected/);
+ assert.ok(!f.requests.some(x=>x.path.startsWith('./api')));
+ field.value='Confirm';await submit();
+ for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
+ assert.equal(f.requests.at(-1).path,'./api/demo/query');
+ assert.equal(f.get('browserResult').hidden,false);
 });

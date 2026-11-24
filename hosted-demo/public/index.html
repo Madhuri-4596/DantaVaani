@@ -190,12 +190,12 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <span class="call-status" id="callStatus" role="status">Ready for a demo call</span>
   <div class="transcript-head"><span class="kicker">Transcript</span><span id="turnCount">No turns</span></div>
   <div id="chat" role="log" aria-live="polite" aria-label="Call transcript"></div>
-  <template id="callEmpty"><div class="chat-empty"><strong>No messages yet.</strong>Pick a fixed sample above, or say “book an appointment.”</div></template>
+  <template id="callEmpty"><div class="chat-empty"><strong>No messages yet.</strong>Type or say “Book an appointment,” “Check fees,” or “Practice callback.” This demo does not accept personal details.</div></template>
   <div class="controls">  <div class="voice-tile"><button id="mic" type="button" aria-label="Start microphone" aria-pressed="false" title="Tap and speak"><svg aria-hidden="true" focusable="false" class="ico mic-idle" viewBox="0 0 24 24"><use href="#icon-mic"></use></svg><svg aria-hidden="true" focusable="false" class="ico mic-recording" viewBox="0 0 24 24"><use href="#icon-square"></use></svg></button></div>
   <span class="mic-caption" id="micCaption">Press to speak</span>
   <div id="interim" role="status"></div><div id="inlineError" role="alert"></div>
 <form id="exampleCommandForm" class="row" autocomplete="off">
- <input type="text" maxlength="80" id="exampleCommand" aria-label="Type an example command" placeholder="Type “book an appointment”">
+ <input type="text" maxlength="120" id="exampleCommand" aria-label="Type an example command" placeholder="Book an appointment…">
  <button id="send" type="submit">Send</button>
  </form><div class="toolbar"><div class="trial-group"><span class="toolbar-label" id="samples">Sample calls</span><div class="trials" role="group" aria-labelledby="samples">
       <button data-demo="booking" aria-pressed="false">Hinglish booking</button>
@@ -204,9 +204,9 @@ button .ico{width:13px;height:13px;margin-right:5px}
       <button data-demo="query" aria-pressed="false">Fees &amp; timings</button>
     </div></div></div>
 <div class="settings">
-<label><input type="checkbox" id="tts" checked> Play scripted agent dialogue</label><span id="audioProvider" class="smallcap" aria-live="polite">Bundled audio</span>
+<label><input type="checkbox" id="tts" checked> Speak replies</label><button id="testVoice" type="button">Test voice</button><span id="audioProvider" class="smallcap" aria-live="polite">Bundled audio</span>
 <button id="replayDemo" type="button" hidden>Replay dialogue</button>
-</div></div><audio id="agentAudio" preload="none"></audio>
+</div></div><audio id="agentAudio" preload="none"></audio><audio id="voicePreview" preload="none" src="./voice/voice-preview.mp3"></audio>
  </section>
  <aside class="rail" aria-labelledby="agent-heading">
   <header class="rail-head"><h2 id="agent-heading">🤝 Agent-to-agent hand-offs</h2><button id="clearLog" type="button">Clear</button></header>
@@ -261,6 +261,10 @@ button .ico{width:13px;height:13px;margin-right:5px}
    <button type="button" data-call-example="emergency">Practice callback</button>
    <button type="button" data-call-example="query">Check fees</button>
   </div>
+  <form id="browserCommandForm" class="row" autocomplete="off">
+   <input id="browserCommand" type="text" maxlength="120" aria-label="Type an in-call command" placeholder="Type a command instead…">
+   <button type="submit">Send</button>
+  </form>
   <div id="browserConfirmRow" class="browser-choices" hidden>
    <button id="browserConfirm" type="button">Run this example</button>
    <button id="browserBack" type="button">Choose another</button>

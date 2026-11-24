@@ -28,3 +28,9 @@ The public workflow endpoint accepts only an empty POST selecting one of three p
 4. Say “End call” during a listening turn or click **End call** anytime. **Mute mic** stops recognition without ending the call.
 
 This is a voice-command demo, not an open conversation or a real phone call. The browser generates the greeting and short prompts; the three-agent scenario dialogue is recorded. Supported speech recognition depends on the browser and its permissions. The language selector changes recognition only, not the language of the replies. If the mic is unavailable, use the sample buttons. Do not enter names, contact details, or patient information.
+
+### Type a command or check audio
+
+Type a command in the main panel and press **Send** to run the matching example. Inside **Call DantaVaani**, you can type the same command, then type “Confirm” or tap **Run this example**. The app shows the matched example name, not the original text. This is not a general-purpose chat.
+
+**Speak replies** controls whether examples are played out loud. Click **Test voice** to hear a short sample without running a workflow. If you cannot hear it, check the device volume and whether the tab or browser is muted.

@@ -3,7 +3,7 @@ const {createServer}=require('node:http');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const {runExample,isScenario}=require('./engine.cjs');
-const assets=new Map([['/','index.html'],['/zip-layout.css','zip-layout.css'],['/demo.js','demo.js'],['/voice-eleven/demo-voices.json','voice-eleven/demo-voices.json'],...['voice-agent','triage-agent','action-agent'].map(n=>['/voice-eleven/'+n+'.mp3','voice-eleven/'+n+'.mp3']),['/voice-cues.js','voice-cues.js'],['/THIRD_PARTY_NOTICES.txt','THIRD_PARTY_NOTICES.txt'],...['booking','urgent','fees'].map(n=>['/voice/'+n+'.mp3','voice/'+n+'.mp3'])]);
+const assets=new Map([['/','index.html'],['/zip-layout.css','zip-layout.css'],['/demo.js','demo.js'],['/voice-eleven/demo-voices.json','voice-eleven/demo-voices.json'],...['voice-agent','triage-agent','action-agent'].map(n=>['/voice-eleven/'+n+'.mp3','voice-eleven/'+n+'.mp3']),['/voice-cues.js','voice-cues.js'],['/THIRD_PARTY_NOTICES.txt','THIRD_PARTY_NOTICES.txt'],...['booking','urgent','fees','voice-preview'].map(n=>['/voice/'+n+'.mp3','voice/'+n+'.mp3'])]);
 const mime={css:'text/css; charset=utf-8',html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',txt:'text/plain; charset=utf-8',json:'application/json; charset=utf-8',mp3:'audio/mpeg'};
 const portArg=process.argv.indexOf('--port');
 const port=Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||4180);
