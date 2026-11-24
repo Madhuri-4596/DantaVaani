@@ -165,6 +165,7 @@ button .ico{width:13px;height:13px;margin-right:5px}
 .browser-locale-note{text-align:center;color:#b6c5ec;font-size:.7rem;margin:4px 0 10px}
 @media(max-width:650px){.browser-frame{width:calc(100% - 28px);padding-top:11px}.browser-person{margin-top:18px}.browser-avatar{width:66px;height:66px}.browser-avatar .ico{width:29px;height:29px}}
 </style>
+<link rel="stylesheet" href="./zip-layout.css">
 </head>
 <body>
 <!-- Lucide Icons, ISC; Feather-derived icons, MIT. See THIRD_PARTY_NOTICES.txt. -->
@@ -180,33 +181,35 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <path d="M12 8h.01" /></symbol><symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
   <path d="M3 3v5h5" /></symbol><symbol id="icon-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
   <path d="m21.854 2.147-10.94 10.939" /></symbol><symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="icon-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol></svg>
-<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="DantaVaani home"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-phone"></use></svg><span>Danta<span>Vaani</span></span></a><span class="workspace">Public sandbox</span></div></header>
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="DantaVaani home">🪔 <span>Danta<span>Vaani</span></span></a><span class="tag">Multilingual voice receptionist demo · Voice ↔ Triage ↔ Action agents</span><span class="workspace">Public sandbox</span></div></header>
 <main class="wrap">
 <p class="notice" role="note"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-info"></use></svg><span><strong>Sandbox only. Don’t share personal information.</strong> Three scripted voices. Examples run the demo workflow once on the server; nothing is booked or sent outside the sandbox. Your browser may send microphone audio to its speech provider; this app only sends the selected example name.</span></p>
-<div class="toolbar"><div class="trial-group"><span class="toolbar-label" id="samples">Sample calls</span><div class="trials" role="group" aria-labelledby="samples">
-      <button data-demo="booking" aria-pressed="false">Sandbox booking</button>
-      <button data-demo="emergency" aria-pressed="false">Practice callback</button>
-      
-      <button data-demo="query" aria-pressed="false">Fees &amp; timings</button>
-    </div></div><button type="button" id="newCall"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-rotate-ccw"></use></svg>New call</button></div>
 <div class="console">
  <section class="call" aria-labelledby="call-heading">
+  <header class="panel-head"><h1 id="call-heading">📞 Live call</h1><button class="start-browser-call" id="startBrowserCall" type="button">📞 Call DantaVaani</button><button type="button" id="newCall">New call</button></header>
   <span class="call-status" id="callStatus" role="status">Ready for a demo call</span>
-  <h1 id="call-heading">Call DantaVaani</h1><p class="call-deck">A private-to-this-run practice conversation. No real clinic is connected.</p>
-  <button class="start-browser-call" id="startBrowserCall" type="button"><svg aria-hidden="true" class="ico"><use href="#icon-phone"></use></svg> Start browser call</button>
-  <div class="voice-tile"><span class="wave"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-audio-lines"></use></svg></span><button id="mic" type="button" aria-label="Start microphone" aria-pressed="false" title="Tap and speak"><svg aria-hidden="true" focusable="false" class="ico mic-idle" viewBox="0 0 24 24"><use href="#icon-mic"></use></svg><svg aria-hidden="true" focusable="false" class="ico mic-recording" viewBox="0 0 24 24"><use href="#icon-square"></use></svg></button><span class="wave"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-audio-lines"></use></svg></span></div>
-  <span class="mic-caption" id="micCaption">Press to speak</span>
-  <div id="interim" role="status"></div><div id="inlineError" role="alert"></div>
   <div class="transcript-head"><span class="kicker">Transcript</span><span id="turnCount">No turns</span></div>
   <div id="chat" role="log" aria-live="polite" aria-label="Call transcript"></div>
   <template id="callEmpty"><div class="chat-empty"><strong>No messages yet.</strong>Pick a fixed sample above, or say “book an appointment.”</div></template>
-  <div class="controls"><div class="settings">
+  <div class="controls">  <div class="voice-tile"><button id="mic" type="button" aria-label="Start microphone" aria-pressed="false" title="Tap and speak"><svg aria-hidden="true" focusable="false" class="ico mic-idle" viewBox="0 0 24 24"><use href="#icon-mic"></use></svg><svg aria-hidden="true" focusable="false" class="ico mic-recording" viewBox="0 0 24 24"><use href="#icon-square"></use></svg></button></div>
+  <span class="mic-caption" id="micCaption">Press to speak</span>
+  <div id="interim" role="status"></div><div id="inlineError" role="alert"></div>
+<form id="exampleCommandForm" class="row" autocomplete="off">
+ <input type="text" maxlength="80" id="exampleCommand" aria-label="Type an example command" placeholder="Type “book an appointment”">
+ <button id="send" type="submit">Send</button>
+ </form><div class="toolbar"><div class="trial-group"><span class="toolbar-label" id="samples">Sample calls</span><div class="trials" role="group" aria-labelledby="samples">
+      <button data-demo="booking" aria-pressed="false">Hinglish booking</button>
+      <button data-demo="emergency" aria-pressed="false">Practice callback</button>
+      
+      <button data-demo="query" aria-pressed="false">Fees &amp; timings</button>
+    </div></div></div>
+<div class="settings">
 <label><input type="checkbox" id="tts" checked> Play scripted agent dialogue</label><span id="audioProvider" class="smallcap" aria-live="polite">Bundled audio</span>
 <button id="replayDemo" type="button" hidden>Replay dialogue</button>
 </div></div><audio id="agentAudio" preload="none"></audio>
  </section>
  <aside class="rail" aria-labelledby="agent-heading">
-  <header class="rail-head"><h2 id="agent-heading">Agent timeline</h2><button id="clearLog" type="button">Clear log</button></header>
+  <header class="rail-head"><h2 id="agent-heading">🤝 Agent-to-agent hand-offs</h2><button id="clearLog" type="button">Clear</button></header>
   <ol class="pipeline" aria-label="Agent workflow">
    <li id="stageVoice"><strong>Voice</strong><span>Ready</span></li>
    <li id="stageTriage"><strong>Triage</strong><span>Standby</span></li>
@@ -216,11 +219,13 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <div class="log-scroll" id="log" role="log" aria-label="Agent events"></div>
   <div class="modes" id="modes" aria-label="Execution modes"></div>
  </aside>
-</div>
+<section class="clinic-panel" aria-labelledby="clinic-panel-title">
+<header class="panel-head"><h2 id="clinic-panel-title">🦷 Clinic dashboard</h2><span class="workspace">Sandbox</span></header>
+<div class="clinic-placeholder"><p>No demo records yet. Start a sample call to see its result here.</p></div>
 <details class="results" id="desk" hidden>
  <summary>Clinic results <svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-chevron-down"></use></svg><span class="result-count" id="resultCount"></span></summary>
  <div class="desk-data">
-  <header class="card-head"><h2 id="clinicName">Sandbox results</h2><button id="reset" type="button">Reset demo data</button></header>
+  <header class="card-head"><h2 id="clinicName">Sandbox results</h2><button id="reset" type="button">Reset demo</button></header>
   <div class="kpis">
    <div class="kpi"><div class="n" id="kBooked">—</div><div class="l">Demo records</div></div>
    <div class="kpi"><div class="n" id="kAlerts">—</div><div class="l">Review requests</div></div>
@@ -232,6 +237,8 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <div class="table-wrap" hidden><table><thead><tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead><tbody id="appts"></tbody></table></div>
  </div>
 </details>
+</section>
+</div>
 </main>
 <footer class="wrap">Public simulation only · Not connected to a clinic</footer>
 <dialog id="browserCall" aria-labelledby="callTitle" aria-describedby="callPrivacy">

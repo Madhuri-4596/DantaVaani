@@ -267,6 +267,15 @@ function startBrowserCall(){
  reset();dialog.showModal();callStartedAt=Date.now();overlayTime();
  callClock=setInterval(overlayTime,1000);
 }
+// The text box maps only a fixed phrase to an existing sample. It never sends text.
+$('exampleCommandForm')?.addEventListener('submit',event=>{
+ event.preventDefault();if(busy)return;
+ const input=$('exampleCommand');
+ const sample=phraseToScenario.get(normalizeCommand(input.value));
+ input.value='';
+ if(!sample){note('Try “book an appointment”, “practice callback”, or “check fees”. Use sample commands only.');return;}
+ note();stageScenario(sample);
+});
 $('startBrowserCall').addEventListener('click',startBrowserCall);
 $('browserHang').addEventListener('click',closeBrowserCall);
 dialog.addEventListener('close',()=>{clearInterval(callClock);callClock=null;reset();$('startBrowserCall').focus();});

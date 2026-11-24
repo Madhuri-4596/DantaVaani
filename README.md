@@ -12,7 +12,7 @@ DantaVaani shows what happens after the receptionist hears a request. **Voice** 
 
 ## How I built it
 
-This repo contains the public walkthrough: HTML, CSS, and JavaScript, deployed on Vercel. It uses the browser's Web Speech API on supported browsers, with example buttons as a fallback. The separate local prototype uses Node.js and Express to pass structured messages between roles and test scheduling against a test calendar. Live Lyzr integration has not been verified and is not part of this public build.
+The live three-panel demo is built from [`hosted-demo/`](hosted-demo/). Its Node.js and Express backend runs fixed examples through the Voice, Triage and Action roles with an isolated test calendar. It plays recorded voices and can use browser speech recognition for allowed commands. It does not send caller audio or transcripts to the app. Live Lyzr is not part of this public build. The root files are the earlier static walkthrough.
 
 ## Challenges and lessons
 
@@ -20,7 +20,7 @@ This repo contains the public walkthrough: HTML, CSS, and JavaScript, deployed o
 
 ## Try it locally
 
-From this folder, run `python -m http.server 8000` and open `http://localhost:8000`. Click **Book a visit**, **Urgent callback**, or **Check fees** to see the handoff without microphone access. If trying the mic, use example requests only, never real patient details.
+Run `cd hosted-demo`, `npm ci --ignore-scripts`, and `npm start`. Open [localhost:3000](http://localhost:3000), choose **Call DantaVaani**, and run a sample. No microphone is needed. If trying the mic, use sample commands, never real patient details.
 
 ## What's next
 
