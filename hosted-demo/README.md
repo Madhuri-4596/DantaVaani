@@ -20,17 +20,18 @@ The app always includes offline recordings. To create three alternate booking re
 ### Public data boundary
 The public workflow endpoint accepts only an empty POST selecting one of three predefined identifiers: booking, emergency (practice review only), or query. It returns the scenario key, simple allowlisted hand-off/status metadata, non-identifying result copy and two aggregate counts for that run. It does not return caller text, contact details, IDs, clinic hours, fees, appointments, session data or a shared feed. No remote text model, telephone webhook or clinic integration is included. Optional build-time synthesis sends only the three reviewed synthetic booking lines, predefined voice IDs, and model configuration to ElevenLabs with a build secret in its authorization header.
 
-### Try the hands-free browser call
+### Full-screen browser call
+Select Start browser call to open the full-screen conversation. The microphone remains off until you turn it on. Choose a listed example or say an allowed short command, then confirm before any sandbox request is made. End call or Escape stops playback and clears this run’s result from the screen. Locale selection sets browser recognition only; replies are recorded in English. DantaVaani sends no raw voice transcript, and the sandbox confirmation sends a bodyless POST with only the example identifier. To test without microphone permission, use the in-call sample buttons.
 
-1. Click **Call DantaVaani**, then **Unmute mic** once and allow microphone access. Wait until the call says **Listening**.
-2. The receptionist asks who is calling. Try a made-up first and last name, such as “Asha Sharma,” or say “Skip.” If you give only a first name, it asks for a last name separately.
-3. Ask in your own words, for example, “Could I get a checkup?” or “What would a visit cost?” The receptionist responds one question at a time. Say “Yes,” “Go ahead,” or “No thanks” when it asks for confirmation.
-4. Say “End call” or tap **End call**. Names are cleared when the call ends. No name or transcript is sent to DantaVaani’s server. Your browser may use its own speech recognition service.
+### Private live Lyzr handoff for recording
 
-The flow understands booking, fees, and practice callback requests. It isn’t general-purpose AI or a live clinic line. Practice bookings use a fixed example calendar, not caller scheduling details. The browser chooses an installed English voice, preferring enhanced voices when available. Personalized names are spoken only with a voice the browser identifies as local. On other voices the greeting stays generic in audio. The main-panel sample buttons still use the three-agent recordings.
+The opt-in recording page is separate from the public sandbox. It sends one fictional, administrative callback request and accepts only two routing outcomes so it never displays raw agent output. It cannot accept arbitrary prompts, patient details, or take real actions.
 
-### Type a command or check audio
+1. In Lyzr Studio, use a demo agent with no external action tools and no patient data. Instruct it to classify fictional scheduling callback requests and return only `CALLBACK_NOTE_READY` or `REVIEW_REQUIRED`.
+2. Set `LYZR_API_KEY`, `LYZR_CALLBACK_AGENT_ID`, and the Lyzr workspace's `LYZR_DEMO_USER_ID` in a private local environment. Do not commit the key or put it in the browser.
+3. Run `DANTAVAANI_LYZR_DEMO=1 npm run dev`, then open `http://127.0.0.1:4180/lyzr`. Click **Run live Lyzr handoff**. Only a successful recognized provider response counts as live.
+4. `npm test` runs without any provider credentials. The Express production entry point does not expose the recording-only page or API.
 
-Type a command in the main panel and press **Send** to run the matching example. Inside **Call DantaVaani**, you can type the same command, then type “Confirm” or tap **Run this example**. The app shows the matched example name, not the original text. This is not a general-purpose chat.
+### On a protected Vercel preview
 
-**Speak replies** controls whether examples are played out loud. Click **Test voice** to hear a short sample without running a workflow. If you cannot hear it, check the device volume and whether the tab or browser is muted.
+The same page is available at `/lyzr` in Vercel Preview only. Production returns 404 for the page and its route. Keep Vercel deployment protection enabled. Set the three Lyzr settings above as server-side Preview settings. Also set `DANTAVAANI_PREVIEW_TOKEN` to a distinct, randomly generated secret of at least 24 characters, scoped to the preview branch; enter that access code on the page. Do not use a Lyzr API key as the access code. With missing credentials the route returns 503 without contacting Lyzr.

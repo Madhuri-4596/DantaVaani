@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DantaVaani | Lyzr callback handoff</title>
+<style>
+*{box-sizing:border-box}body{font:17px/1.6 system-ui;background:#f4f3ef;color:#191d24;margin:0}main{max-width:720px;margin:8vh auto;padding:30px}h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1.06}small{letter-spacing:.08em;text-transform:uppercase}section{border:1px solid #d7d7cc;background:#fff;padding:24px;border-radius:14px}button{background:#182f30;color:white;border:0;border-radius:8px;padding:14px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.65}#result{min-height:3em}a{color:#184946}
+</style>
+<main>
+<small>DantaVaani · Private recording preview</small>
+<h1>From receptionist to callback desk</h1>
+<section>
+<p><strong>Fictional request:</strong> “Could the front desk call me back about changing the time of my sample appointment?”</p>
+<p>The demo sends only the fixed example to a Lyzr agent for administrative routing. No caller details, clinical advice, actual callback or booking.</p>
+<p id="gate" hidden><label>Preview access code <input id="code" type="password" autocomplete="off" spellcheck="false"></label></p>
+<button id="run" type="button">Run live Lyzr handoff</button>
+<p id="result" role="status" aria-live="polite"></p>
+</section>
+<p><a href="/">Back to the DantaVaani demo</a></p>
+</main>
+<script>
+const run=document.querySelector('#run'), result=document.querySelector('#result');
+const code=document.querySelector('#code');
+const online=location.protocol==='https:';
+if(online)document.querySelector('#gate').hidden=false;
+run.addEventListener('click',async()=>{
+ run.disabled=true; result.textContent='Receptionist → Lyzr callback agent: sending the fictional request…';
+ try{
+  const headers={};
+  if(online&&code.value)headers.Authorization='Bearer '+code.value.trim();
+  const r=await fetch('/api/private/lyzr-callback',{method:'POST',headers});
+  const data=await r.json();
+  result.textContent=r.ok?'Lyzr replied: '+data.status+'. '+data.message:data.error;
+ }catch{result.textContent='The live handoff could not be verified.';}
+ finally{run.disabled=false;}
+});
+</script>
+</html>
