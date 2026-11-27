@@ -32,7 +32,7 @@ function fixture(provider,withSpeech=false,localVoice=false){
  });
  get('tts').checked=true;
  const buttons=['booking','emergency','query'].map(demo=>Object.assign(node(),{dataset:{demo}}));
- const manifest=provider?{
+ const manifest=provider==='all'?{provider:'ElevenLabs',synthetic:true,scenarios:{emergency:['Voice','Triage','Action'].map(agent=>({role:agent+' Agent',file:'emergency-'+agent.toLowerCase()+'-agent.mp3',text:agent+' callback line.'}))}}:provider?{
   provider:'ElevenLabs',synthetic:true,clips:['Voice','Triage','Action'].map(agent=>{
     return {role:agent+' Agent',file:agent.toLowerCase()+'-agent.mp3',text:agent+' tells the demo status.'};
   })
@@ -45,7 +45,7 @@ function fixture(provider,withSpeech=false,localVoice=false){
   constructor(){recognitions.push(this);}
   start(){}
   abort(){}
-  hear(transcript){this.onresult({resultIndex:0,results:[Object.assign([{transcript}],{isFinal:true})]});}
+  hear(transcript,...alternatives){this.onresult({resultIndex:0,results:[Object.assign([{transcript},...alternatives.map(transcript=>({transcript}))],{isFinal:true})]});}
  }
  const doc={
   baseURI:'http://localhost:9999/', getElementById:get,
@@ -136,13 +136,13 @@ test('hands-free call uses the name in-session, understands a free-form booking 
  assert.match(f.spoken.at(-1).text,/Shall I go ahead/);
  assert.equal(f.get('browserConfirmRow').hidden,false);
  assert.ok(!f.requests.some(r=>r.path.includes('/api/demo/')));
- say(3,'Sure');
+ say(3,'Yeah, please book it');
  for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
  const workflow=f.requests.find(r=>r.path.includes('/api/demo/'));
  assert.equal(workflow.path,'./api/demo/booking');assert.equal(workflow.opts.body,undefined);
  assert.doesNotMatch(JSON.stringify(f.requests),/Asha|Sharma/);
  assert.match(f.get('browserResult').textContent,/Sandbox appointment recorded/);
- assert.match(f.spoken.at(-1).text,/didn’t make a real appointment/);
+ assert.match(f.spoken.at(-1).text,/added your visit to the demo calendar/);
  assert.equal(f.playCalls.length,0);
  say(4,'goodbye');f.advance();
  assert.equal(f.dialog.open,false);
@@ -220,4 +220,32 @@ test('a booking-first caller can decline to share a name and still confirm',asyn
  await say('confirm');
  for(let i=0;i<30&&f.get('browserResult').hidden;i++)await new Promise(r=>setTimeout(r,10));
  assert.match(f.get('browserResult').textContent,/Sandbox appointment recorded/);
+});
+
+test('echo and ambiguous confirmations stop after one retry, without creating any booking',()=>{
+ const f=fixture(false,true,true);
+ f.get('startBrowserCall').listeners.click();f.get('browserMic').listeners.click();
+ const say=(i,text,...alternatives)=>{f.spoken.at(-1).onend();f.advance();f.recognitions[i].hear(text,...alternatives);};
+ say(0,'Book an appointment');say(1,'Skip');
+ say(2,'Shall I go ahead and book the visit?');
+ assert.match(f.spoken.at(-1).text,/Sorry, I missed/);
+ say(3,'Yes','No');
+ assert.match(f.spoken.at(-1).text,/Use the button below/);
+ f.spoken.at(-1).onend();f.advance();
+ assert.equal(f.recognitions.length,4);
+ assert.ok(!f.requests.some(r=>r.path.startsWith('./api')));
+ assert.equal(f.get('browserConfirmRow').hidden,false);
+});
+
+test('callback uses all three natural recordings, with a callback-specific fallback',async()=>{
+ const f=fixture('all');await next();await f.buttons[1].listeners.click();
+ for(const role of ['voice','triage']){
+  const src=f.playCalls.at(-1);
+  assert.ok(src.endsWith('/emergency-'+role+'-agent.mp3'));
+  f.audio.at('playing',src);f.audio.at('ended',src);
+ }
+ const action=f.playCalls.at(-1);
+ assert.ok(action.endsWith('/emergency-action-agent.mp3'));
+ f.audio.at('error',action);
+ assert.ok(f.playCalls.at(-1).endsWith('/voice/urgent.mp3'));
 });

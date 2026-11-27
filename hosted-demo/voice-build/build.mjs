@@ -9,12 +9,20 @@ if(process.env.DANTAVAANI_GENERATE_ELEVENLABS==='true'&&process.env.ELEVENLABS_A
  let scratch;
  try{
   scratch=await mkdtemp(join(process.cwd(),'.voice-stage-'));
-  const clips=await renderDemo({key:process.env.ELEVENLABS_API_KEY,out:scratch,timeoutMs:6500});
-  for(const clip of clips)await rename(join(scratch,clip.file),join(destination,clip.file));
-  await rename(join(scratch,'demo-voices.json'),join(destination,'demo-voices.json'));
-  console.log('Three fixed booking clips are available.');
+  const scenarios={};
+  for(const scenario of ['booking','emergency','query']){
+   const clips=await renderDemo({key:process.env.ELEVENLABS_API_KEY,out:join(scratch,scenario),timeoutMs:6500,scenario});
+   scenarios[scenario]=clips.map(clip=>({...clip,file:scenario+'-'+clip.file}));
+  }
+  for(const [scenario,clips] of Object.entries(scenarios)){
+   for(const clip of clips)await rename(join(scratch,scenario,clip.file.slice(scenario.length+1)),join(destination,clip.file));
+  }
+  const manifest=join(scratch,'manifest.json');
+  await writeFile(manifest,JSON.stringify({provider:'ElevenLabs',synthetic:true,scenarios})+'\n');
+  await rename(manifest,join(destination,'demo-voices.json'));
+  console.log('Natural voice recordings available for booking, callback and fees.');
  }catch{
-  // No exception/HTTP body is logged. The default manifest remains offline.
+  // The default manifest stays offline; never expose API errors or credentials.
   console.warn('ElevenLabs audio unavailable. Included offline dialogue will be used.');
  }finally{if(scratch)await rm(scratch,{recursive:true,force:true});}
 }else console.log('Optional voice rendering disabled. Included offline dialogue will be used.');

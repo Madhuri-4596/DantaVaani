@@ -2,15 +2,36 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {access,mkdir,writeFile,rename,rm} from 'node:fs/promises';
 
-export const lines = Object.freeze([
- Object.freeze({role:'Voice Agent', file:'voice-agent.mp3', voice:'OZ0L6eISlOejga3XjDFt', name:'Talia', text:'Namaste, you’re through to DantaVaani. I heard a request to book a visit. Triage, can you review it?'}),
- Object.freeze({role:'Triage Agent', file:'triage-agent.mp3', voice:'BFd5oBc2DDna33pSi4Gf', name:'Alicia', text:'This is a routine scheduling request. No health details are needed. Action, can you check the sandbox calendar?'}),
- Object.freeze({role:'Action Agent', file:'action-agent.mp3', voice:'ktkP7Nsj67dw2zcplQYt', name:'Lawrence', text:'I’m checking the demo calendar. The result panel will show if a practice appointment was added. No real appointment or notification will be made.'}),
+const cast=Object.freeze([
+ {role:'Voice Agent',file:'voice-agent.mp3',voice:'OZ0L6eISlOejga3XjDFt',name:'Talia',style:0.28},
+ {role:'Triage Agent',file:'triage-agent.mp3',voice:'BFd5oBc2DDna33pSi4Gf',name:'Alicia',style:0.42},
+ {role:'Action Agent',file:'action-agent.mp3',voice:'ktkP7Nsj67dw2zcplQYt',name:'Lawrence',style:0.2},
 ]);
+const scripts=Object.freeze({
+ booking:[
+  'Hi, thanks for calling. I can help with a visit. Do we need anything else before I check the calendar?',
+  'No, we’re set. We don’t need any health details just to check a time.',
+  'I found a spot. I’ll add it to the demo calendar now.',
+ ],
+ emergency:[
+  'Got it. You’d like a call back from the clinic. Can we take a message?',
+  'Yes. Let’s keep it simple and just note that they’d like a call back.',
+  'Okay, I’ve logged it for review in the demo. Nothing went out to the clinic.',
+ ],
+ query:[
+  'Sure, I can check on the cost of a visit. Do we have a current price list?',
+  'Let’s check what the clinic has on file. I don’t want to give them a guess.',
+  'There isn’t a verified price here. I’d check with the clinic before booking.',
+ ],
+});
+const forScenario=scenario=>scripts[scenario].map((text,i)=>Object.freeze({...cast[i],text}));
+export const lines=Object.freeze(forScenario('booking'));
 const maxBytes=512*1024, model='eleven_multilingual_v2';
-export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=12_000}={}){
+export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=12_000,scenario='booking'}={}){
  if(typeof key!=='string'||!/^[A-Za-z0-9_-]{20,256}$/.test(key))throw Error('Set ELEVENLABS_API_KEY through a secure server environment.');
  if(typeof out!=='string'||!out)throw Error('Select an output directory.');
+ if(!Object.hasOwn(scripts,scenario))throw Error('Unknown voice scenario.');
+ const lines=forScenario(scenario);
  const destination=resolve(out);
  await mkdir(destination,{recursive:true});
  // No partial publish: prepare in memory before touching any final paths.
@@ -23,7 +44,7 @@ export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=
   try{
    const response=await fetcher('https://api.elevenlabs.io/v1/text-to-speech/'+line.voice+'?output_format=mp3_44100_128',{
     method:'POST',redirect:'error',signal,headers:{'xi-api-key':key,'Content-Type':'application/json',Accept:'audio/mpeg'},
-    body:JSON.stringify({text:line.text,model_id:model}),
+    body:JSON.stringify({text:line.text,model_id:model,voice_settings:{stability:0.43,similarity_boost:0.75,style:line.style,use_speaker_boost:true}}),
    });
    if(!response.ok){await response.body?.cancel();throw new Error('Provider status '+response.status);}
    if(!/^audio\/(?:mpeg|mp3)(?:;|$)/i.test(response.headers.get('content-type')??'')||Number(response.headers.get('content-length'))>maxBytes||!response.body){

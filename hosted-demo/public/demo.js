@@ -9,7 +9,7 @@ const dialog=$('browserCall');
 const callButtons=[...document.querySelectorAll('[data-call-example]')];
 const supportedLocales=new Set(['en-IN','hi-IN','kn-IN','ta-IN','te-IN','mr-IN','bn-IN']);
 const scenarioNames={booking:'Sandbox booking',emergency:'Practice callback',query:'Fees information'};
-let pending=null,callStartedAt=0,callClock=null;
+let pending=null,callStartedAt=0,callClock=null,confirmationMisses=0,confirmationPaused=false;
 let liveMic=false,resumeTimer=null,promptTimer=null,promptEpoch=0,waitingForFollowup=false,liveResult='';
 let speechBusy=false;
 let caller=null, firstPart='', callStep='welcome', missedTurns=0, nameDeclined=false;
@@ -19,7 +19,7 @@ function modalText(role,text){if(!dialog.open)return; $('browserSpeaker').textCo
 function modalState(text,state='ready'){if(!dialog.open)return; $('browserCallStatus').textContent=text; $('browserAvatar').dataset.state=state;}
 function modalNote(text=''){$('browserError').textContent=text;}
 function clearConfirmation(){
- pending=null;$('browserConfirmRow').hidden=true;
+ pending=null;confirmationMisses=0;confirmationPaused=false;$('browserConfirmRow').hidden=true;
 }
 function revealReplay(show){$('replayDemo').hidden=!show;$('browserReplay').hidden=!show;}
 function overlayTime(){
@@ -29,20 +29,26 @@ function overlayTime(){
 
 const names={'Voice Agent':'Voice','Triage Agent':'Triage','Action Agent':'Action','Action Agent ⚠ ESCALATE':'Action','Clinic System':'Clinic'};
 let revision=0,busy=false,current=null,voice=null,activeCaption=-1,rec=null,replayEpoch=0;
-let elevenClips=null,elevenTurn=-1,mediaReady=false,expectedSrc="";
+let voiceSets={},elevenClips=null,elevenKey=null,elevenTurn=-1,mediaReady=false,expectedSrc="";
 const clipNames=['voice-agent.mp3','triage-agent.mp3','action-agent.mp3'];
 function verifiedManifest(manifest){
- const clips=manifest?.clips;
- return manifest?.provider==='ElevenLabs'&&manifest.synthetic===true&&Array.isArray(clips)&&clips.length===3&&clips.every((clip,i)=>
-  clip?.file===clipNames[i]&&clip.role===watched[i]+' Agent'&&typeof clip.text==='string'&&clip.text.length>0&&clip.text.length<=250
- )?clips.map(({role,file,text})=>({role,file,text})):null;
+ if(manifest?.provider!=='ElevenLabs'||manifest.synthetic!==true)return {};
+ const checked={};
+ for(const key of Object.keys(clipFor)){
+  const legacy=key==='booking'&&!manifest.scenarios;
+  const clips=legacy?manifest.clips:manifest.scenarios?.[key];
+  if(Array.isArray(clips)&&clips.length===3&&clips.every((clip,i)=>
+   clip?.file===(legacy?'':key+'-')+clipNames[i]&&clip.role===watched[i]+' Agent'&&typeof clip.text==='string'&&clip.text.length>0&&clip.text.length<=250
+  ))checked[key]=clips.map(({role,file,text})=>({role,file,text}));
+ }
+ return checked;
 }
 fetch('./voice-eleven/demo-voices.json',{cache:'no-store'}).then(response=>response.ok?response.json():null)
- .then(manifest=>{elevenClips=verifiedManifest(manifest);if(!voice)showIdleVoice();}).catch(()=>{});
+ .then(manifest=>{voiceSets=verifiedManifest(manifest);if(!voice)showIdleVoice();}).catch(()=>{});
 
 function status(text,mode='ready'){$('callStatus').textContent=text;$('callStatus').dataset.state=mode;modalState(text,mode);}
 function note(text=''){$('inlineError').textContent=text;if(dialog.open)modalNote(text);}
-function showIdleVoice(){$('audioProvider').textContent=elevenClips?'Offline audio · ElevenLabs available for booking':'Bundled offline audio';}
+function showIdleVoice(){$('audioProvider').textContent=Object.keys(voiceSets).length?'ElevenLabs demo recordings available':'Bundled offline audio';}
 function stage(agent,message,state=''){
  const target=$('stage'+agent);target.dataset.state=state;target.lastElementChild.textContent=message;
 }
@@ -70,10 +76,10 @@ function stopLive(){
 }
 function scheduleListening(){
  clearTimeout(resumeTimer);
- if(!dialog.open||!liveMic||busy||rec||speechBusy||expectedSrc)return;
+ if(!dialog.open||!liveMic||busy||rec||speechBusy||expectedSrc||confirmationPaused)return;
  resumeTimer=setTimeout(()=>{
   resumeTimer=null;
-  if(dialog.open&&liveMic&&!busy&&!rec&&!speechBusy&&!expectedSrc)beginListen(true);
+  if(dialog.open&&liveMic&&!busy&&!rec&&!speechBusy&&!expectedSrc&&!confirmationPaused)beginListen(true);
  },180);
 }
 function speakPrompt(text,withoutName=text){
@@ -111,7 +117,7 @@ function continueCall(){
 }
 function stopPreview(){if(preview&&!preview.paused){preview.pause();preview.currentTime=0;}}
 function clearVoice(){
- stopPreview();replayEpoch++;voice=null;activeCaption=-1;elevenTurn=-1;mediaReady=false;expectedSrc='';
+ stopPreview();replayEpoch++;voice=null;elevenClips=null;elevenKey=null;activeCaption=-1;elevenTurn=-1;mediaReady=false;expectedSrc='';
  audio.pause();showIdleVoice();
 }
 function reset(preserveLive=false){
@@ -168,7 +174,7 @@ function failedPlayback(stamp,source){
  mediaReady=false;expectedSrc='';
  if(elevenTurn>=0){
   $('chat').replaceChildren();$('turnCount').textContent='No turns';
-  playOffline('booking',stamp);
+  playOffline(elevenKey,stamp);
  }else{
   showIdleVoice();
   note('Recorded dialogue could not play. You can keep speaking or tap Replay dialogue.');
@@ -188,8 +194,8 @@ function playEleven(stamp){
 function play(key,userClick=false){
  if(!$('tts').checked&&!userClick)return;
  clearVoice();const stamp=replayEpoch;
- if(key==='booking'&&elevenClips){
-  elevenTurn=0;voice='booking';$('audioProvider').textContent='Loading booking dialogue';playEleven(stamp);
+ if(voiceSets[key]){
+  elevenClips=voiceSets[key];elevenKey=key;elevenTurn=0;voice=clipFor[key];$('audioProvider').textContent='Loading agent dialogue';playEleven(stamp);
  }else playOffline(key,stamp);
 }
 audio.addEventListener('timeupdate',caption);
@@ -237,7 +243,7 @@ function desk(data){
  $('browserResult').hidden=false;
 }
 const spokenOutcome={
- booking:'You’re all set for the practice booking. This didn’t make a real appointment. Is there anything else I can help with?',
+ booking:'You’re all set. I’ve added your visit to the demo calendar. Anything else I can help with?',
  emergency:'I’ve logged a practice callback request. No one was contacted. Is there anything else I can help with?',
  query:'I don’t have a verified clinic price to quote. Is there anything else I can help with?'
 };
@@ -304,6 +310,12 @@ const phraseToScenario=new Map([
 ]);
 const confirmPhrases=new Set(['confirm','yes','yes please','run this example','haan','हाँ']);
 const cancelPhrases=new Set(['no','cancel','choose another','nahi','नहीं']);
+function confirmationAnswer(command){
+ if(cancelPhrases.has(command)||/^(?:not now|no thanks|never mind|no (?:don t|do not) (?:book|go ahead)|नहीं धन्यवाद|వద్దు)$/u.test(command))return 'no';
+ const words=command.replace(/^(?:okay|ok|yes|yeah|yep|yup) (?=.)/,'').replace(/ please$/,'');
+ if(confirmPhrases.has(command)||/^(?:sure|go ahead|please do|that works|okay|ok|yeah|yep|yup|please go ahead|please (?:book|schedule) (?:it|the appointment|the visit)|(?:book|schedule) (?:it|the appointment|the visit)|kar do|haan kar do|हाँ कर दो|అవును)$/u.test(words))return 'yes';
+ return null;
+}
 const hangupPhrases=new Set(['end call','hang up','goodbye','bye','that s all']);
 const skipNamePhrases=new Set(['skip','skip name','skip my name','continue','no name','prefer not to say']);
 function conversationIntent(command){
@@ -327,7 +339,7 @@ function readName(raw,maxParts){
 function askCall(text,withoutName=text){modalNote();speakPrompt(text,withoutName);}
 function namedBooking(){
  callStep='confirm';pending='booking';$('browserConfirmRow').hidden=false;
- const general='I can add a practice appointment. Shall I go ahead?';
+ const general='Shall I go ahead and book the visit?';
  askCall(caller?'Thanks, '+caller.first+'. '+general:general,general);
 }
 function acceptCaller(first,last){
@@ -355,10 +367,20 @@ function hearCall(raw,alternatives=[]){
   askCall('Sorry, I didn’t quite catch your name. You can type it or say skip.');return;
  }
  if(callStep==='confirm'){
-  if(confirmPhrases.has(command)||/^(?:sure|go ahead|please do|that works|yes go ahead)$/.test(command)){confirmScenario();return;}
-  if(cancelPhrases.has(command)||/^(?:not now|no thanks|never mind)$/.test(command)){chooseAnother();return;}
-  if(intent){stageScenario(intent);return;}
-  askCall('Should I go ahead with the practice request?');return;
+  const decision=confirmationAnswer(command);
+  const heard=alternatives.map(x=>confirmationAnswer(normalizeCommand(x))).filter(Boolean);
+  // Never commit when the recognizer supplied a conflicting answer.
+  if(decision==='no'){chooseAnother();return;}
+  if(decision==='yes'&&!heard.includes('no')){confirmScenario();return;}
+  if(intent&&intent!==pending&&!decision){stageScenario(intent);return;}
+  if(++confirmationMisses===1){
+   askCall('Sorry, I missed that. Should I go ahead, or leave it for now?');
+  }else{
+   confirmationPaused=true;
+   askCall('I’m having trouble hearing you. Use the button below to go ahead or go back.');
+   modalNote('Listening paused. You can also type your answer.');
+  }
+  return;
  }
  if(/^(?:hi|hey|hello|namaste)$/.test(command)){askCall('Hi. How can I help today?');return;}
  if(/^thank(?:s| you)(?: so much)?$/.test(command)){askCall('You’re welcome. Anything else I can help with?');return;}
@@ -378,7 +400,7 @@ function normalizeCommand(value){
 function stageScenario(key){
  if(busy||!Object.hasOwn(clipFor,key))return;
  if(!dialog.open)return run(key);
- pending=key;
+ pending=key;confirmationMisses=0;confirmationPaused=false;
  cancelMic();clearVoice();modalNote();
  if(key==='booking'){
   if(caller||nameDeclined){namedBooking();return;}
@@ -443,7 +465,7 @@ function toggleLive(){
  if(liveMic){
   stopLive();modalState(expectedSrc?'Playing scripted agent dialogue':'Microphone muted',expectedSrc?'speaking':'ready');return;
  }
- liveMic=true;updateLiveControl();modalNote();
+ liveMic=true;confirmationPaused=false;confirmationMisses=0;updateLiveControl();modalNote();
  if(!busy&&!expectedSrc){
   if(callStep==='last')askCall('And your last name? You can also say skip.');
   else if(callStep==='confirm')askCall('Shall I go ahead with the practice request?');

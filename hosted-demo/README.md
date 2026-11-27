@@ -14,11 +14,11 @@ Render: use the included blueprint or equivalent commands; /healthz returns an a
 
 Generated Flite audio and Lucide SVGs are covered in public/THIRD_PARTY_NOTICES.txt.
 
-### Optional ElevenLabs booking audio
-The app always includes offline recordings. To create three alternate booking recordings at build time only, set `DANTAVAANI_GENERATE_ELEVENLABS=true` and provision `ELEVENLABS_API_KEY` as a secure build secret, then run `npm run build` before publishing. This uses credits for three fixed sample clips. It never submits caller input and adds no runtime API. Successful builds emit a manifest that labels actual recording provenance; generated MP3s contain only the sample dialogue. If configuration or generation is unavailable, playback uses the bundled offline audio. Urgent callback and fees are offline recordings. Never pass an API key to browser code or commit it.
+### Optional ElevenLabs demo dialogue
+The app always includes offline recordings. To create nine alternate recordings for booking, callback, and fees at build time only, set `DANTAVAANI_GENERATE_ELEVENLABS=true` and provision `ELEVENLABS_API_KEY` as a secure build secret, then run `npm run build` before publishing. This uses credits for nine fixed sample clips. It never submits caller input and adds no runtime API. Successful builds emit a manifest that labels actual recording provenance; generated MP3s contain only the sample dialogue. If configuration or generation is unavailable, playback uses the bundled offline audio. Never pass an API key to browser code or commit it.
 
 ### Public data boundary
-The public workflow endpoint accepts only an empty POST selecting one of three predefined identifiers: booking, emergency (practice review only), or query. It returns the scenario key, simple allowlisted hand-off/status metadata, non-identifying result copy and two aggregate counts for that run. It does not return caller text, contact details, IDs, clinic hours, fees, appointments, session data or a shared feed. No remote text model, telephone webhook or clinic integration is included. Optional build-time synthesis sends only the three reviewed synthetic booking lines, predefined voice IDs, and model configuration to ElevenLabs with a build secret in its authorization header.
+The public workflow endpoint accepts only an empty POST selecting one of three predefined identifiers: booking, emergency (practice review only), or query. It returns the scenario key, simple allowlisted hand-off/status metadata, non-identifying result copy and two aggregate counts for that run. It does not return caller text, contact details, IDs, clinic hours, fees, appointments, session data or a shared feed. No remote text model, telephone webhook or clinic integration is included. Optional build-time synthesis sends only nine reviewed synthetic demo lines, predefined voice IDs, and model configuration to ElevenLabs with a build secret in its authorization header.
 
 ### Try the hands-free browser call
 
@@ -27,10 +27,10 @@ The public workflow endpoint accepts only an empty POST selecting one of three p
 3. Ask in your own words, for example, “Could I get a checkup?” or “What would a visit cost?” The receptionist responds one question at a time. Say “Yes,” “Go ahead,” or “No thanks” when it asks for confirmation.
 4. Say “End call” or tap **End call**. Names are cleared when the call ends. No name or transcript is sent to DantaVaani’s server. Your browser may use its own speech recognition service.
 
-The flow understands booking, fees, and practice callback requests. It isn’t general-purpose AI or a live clinic line. Practice bookings use a fixed example calendar, not caller scheduling details. The browser chooses an installed English voice, preferring enhanced voices when available. Personalized names are spoken only with a voice the browser identifies as local. On other voices the greeting stays generic in audio. The main-panel sample buttons still use the three-agent recordings.
+If confirmation is unclear twice, listening pauses and you can type an answer or tap **Go ahead** or **Go back**. The flow understands booking, fees, and practice callback requests. It isn’t general-purpose AI or a live clinic line. Practice bookings use a fixed example calendar, not caller scheduling details. The browser chooses an installed English voice, preferring enhanced voices when available. Personalized names are spoken only with a voice the browser identifies as local. On other voices the greeting stays generic in audio. The main-panel sample buttons still use the three-agent recordings.
 
 ### Type a command or check audio
 
-Type a command in the main panel and press **Send** to run the matching example. Inside **Call DantaVaani**, you can type the same command, then type “Confirm” or tap **Run this example**. The app shows the matched example name, not the original text. This is not a general-purpose chat.
+Type a command in the main panel and press **Send** to run the matching example. Inside **Call DantaVaani**, you can type the same command, then type “Confirm” or tap **Go ahead**. The app shows the matched example name, not the original text. This is not a general-purpose chat.
 
 **Speak replies** controls whether examples are played out loud. Click **Test voice** to hear a short sample without running a workflow. If you cannot hear it, check the device volume and whether the tab or browser is muted.

@@ -34,3 +34,16 @@ test('missing key contacts nobody; provider failure does not write partial audio
   assert.deepEqual(await readdir(out),[]);
  }finally{await rm(out,{recursive:true,force:true});}
 });
+
+test('callback recording has distinct role voices and never asserts a real callback',async()=>{
+ const out=await mkdtemp(join(tmpdir(),'dantavaani-callback-'));
+ const requests=[];
+ try{
+  const clips=await renderDemo({key,out,scenario:'emergency',fetcher:async(url,req)=>{
+   requests.push({url,...JSON.parse(req.body)});return audio();
+  }});
+  assert.equal(new Set(requests.map(r=>r.url)).size,3);
+  assert.equal(new Set(requests.map(r=>r.voice_settings.style)).size,3);
+  assert.match(clips[2].text,/Nothing went out to the clinic/);
+ }finally{await rm(out,{recursive:true,force:true});}
+});
