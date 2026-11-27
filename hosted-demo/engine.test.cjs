@@ -22,7 +22,7 @@ test('local HTTP contract serves assets and example only, no public state/reset'
  const base='http://127.0.0.1:'+server.address().port;
  try{
   assert.equal((await fetch(base+'/healthz')).status,200);
-  assert.match(await (await fetch(base+'/')).text(),/Sandbox only/);
+  assert.match(await (await fetch(base+'/')).text(),/Public sandbox/);
   for(const asset of ['/demo.js','/voice-cues.js','/voice/booking.mp3'])assert.equal((await fetch(base+asset)).status,200);
   const manifest=await (await fetch(base+'/voice-eleven/demo-voices.json')).json();
   assert.equal(manifest.provider,'offline');

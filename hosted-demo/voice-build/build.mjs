@@ -17,8 +17,13 @@ if(process.env.DANTAVAANI_GENERATE_ELEVENLABS==='true'&&process.env.ELEVENLABS_A
   for(const [scenario,clips] of Object.entries(scenarios)){
    for(const clip of clips)await rename(join(scratch,scenario,clip.file.slice(scenario.length+1)),join(destination,clip.file));
   }
+  let call=[];
+  try{
+   call=await renderDemo({key:process.env.ELEVENLABS_API_KEY,out:join(scratch,'call'),timeoutMs:6500,scenario:'call'});
+   for(const clip of call)await rename(join(scratch,'call',clip.file),join(destination,clip.file));
+  }catch{call=[];console.warn('Natural call prompts unavailable. Browser voice will be used for live prompts.');}
   const manifest=join(scratch,'manifest.json');
-  await writeFile(manifest,JSON.stringify({provider:'ElevenLabs',synthetic:true,scenarios})+'\n');
+  await writeFile(manifest,JSON.stringify({provider:'ElevenLabs',synthetic:true,scenarios,call})+'\n');
   await rename(manifest,join(destination,'demo-voices.json'));
   console.log('Natural voice recordings available for booking, callback and fees.');
  }catch{

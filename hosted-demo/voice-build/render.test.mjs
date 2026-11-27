@@ -47,3 +47,17 @@ test('callback recording has distinct role voices and never asserts a real callb
   assert.match(clips[2].text,/Nothing went out to the clinic/);
  }finally{await rm(out,{recursive:true,force:true});}
 });
+
+test('interactive prompt pack uses one voice and only predefined text',async()=>{
+ const out=await mkdtemp(join(tmpdir(),'dv-call-'));
+ const requests=[];
+ try{
+  const clips=await renderDemo({key,out,scenario:'call',fetcher:async(url,req)=>{
+   requests.push({url,...JSON.parse(req.body)});return audio();
+  }});
+  assert.equal(clips.length,25);
+  assert.equal(new Set(requests.map(r=>r.url)).size,1);
+  assert.match(clips[0].text,/Who am I speaking with/);
+  assert.equal(clips.at(-1).file,'call-25.mp3');
+ }finally{await rm(out,{recursive:true,force:true});}
+});

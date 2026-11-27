@@ -37,6 +37,13 @@ function fixture(provider,withSpeech=false,localVoice=false){
     return {role:agent+' Agent',file:agent.toLowerCase()+'-agent.mp3',text:agent+' tells the demo status.'};
   })
  }:{provider:'offline',clips:[]};
+ const callPlayback=[];
+ const callAudio=Object.assign(get('callAudio'),{
+  pause(){this.paused=true;},play(){this.paused=false;callPlayback.push(this.src);return Promise.resolve();}
+ });
+ if(provider==='call'){
+  manifest.call=[{role:'Voice Agent',file:'call-1.mp3',text:'Hi, thanks for calling DantaVaani. Who am I speaking with?'},{role:'Voice Agent',file:'call-4.mp3',text:'Thanks. How can I help today?'}];
+ }
  const choices=['booking','emergency','query'].map(callExample=>Object.assign(node(),{dataset:{callExample}}));
  const dialog=Object.assign(get('browserCall'),{
   open:false,showModal(){this.open=true;},close(){this.open=false;this.listeners.close();}
@@ -60,7 +67,7 @@ function fixture(provider,withSpeech=false,localVoice=false){
   }
  });
  for(const name of ['voice-cues.js','demo.js'])vm.runInContext(fs.readFileSync('public/'+name,'utf8'),ctx,{filename:name});
- return {get,audio,buttons,choices,requests,recognitions,dialog,playCalls,advance,spoken,roles:()=>get('chat').kids.map(x=>x.kids[0]?.textContent).filter(Boolean)};
+ return {get,audio,callAudio,callPlayback,buttons,choices,requests,recognitions,dialog,playCalls,advance,spoken,roles:()=>get('chat').kids.map(x=>x.kids[0]?.textContent).filter(Boolean)};
 }
 const next=()=>new Promise(resolve=>setImmediate(resolve));
 test('bundled audio starts in the booking gesture and captions all three agents',async()=>{
@@ -248,4 +255,19 @@ test('callback uses all three natural recordings, with a callback-specific fallb
  assert.ok(action.endsWith('/emergency-action-agent.mp3'));
  f.audio.at('error',action);
  assert.ok(f.playCalls.at(-1).endsWith('/voice/urgent.mp3'));
+});
+
+test('interactive call prefers prerecorded speech, waits before listening, and does not send names',async()=>{
+ const f=fixture('call',true,true);
+ await next();
+ f.get('startBrowserCall').listeners.click();f.get('browserMic').listeners.click();
+ assert.match(f.callPlayback.at(-1),/\/call-1\.mp3$/);
+ f.advance();assert.equal(f.recognitions.length,0);assert.equal(f.spoken.length,0);
+ f.callAudio.onended();f.advance();f.recognitions[0].hear('My name is Asha Sharma');
+ assert.match(f.callPlayback.at(-1),/\/call-4\.mp3$/);
+ assert.match(f.get('browserCaption').textContent,/Asha/);
+ assert.doesNotMatch(JSON.stringify(f.requests),/Asha|Sharma/);
+ f.callAudio.onerror();
+ assert.match(f.spoken.at(-1).text,/Asha/);
+ f.spoken.at(-1).onend();f.advance();assert.equal(f.recognitions.length,2);
 });

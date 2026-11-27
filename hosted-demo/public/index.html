@@ -183,7 +183,6 @@ button .ico{width:13px;height:13px;margin-right:5px}
   <path d="m21.854 2.147-10.94 10.939" /></symbol><symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="icon-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol></svg>
 <header class="top"><div class="wrap"><a class="brand" href="/" aria-label="DantaVaani home">🪔 <span>Danta<span>Vaani</span></span></a><span class="tag">Multilingual voice receptionist demo · Voice ↔ Triage ↔ Action agents</span><span class="workspace">Public sandbox</span></div></header>
 <main class="wrap">
-<p class="notice" role="note"><svg aria-hidden="true" focusable="false" class="ico " viewBox="0 0 24 24"><use href="#icon-info"></use></svg><span><strong>Sandbox only. Don’t share personal information.</strong> Practice calls run the demo workflow; nothing is booked with a real clinic. Use a made-up name. Your browser may send microphone audio to its speech provider; this app only sends the selected example name.</span></p>
 <div class="console">
  <section class="call" aria-labelledby="call-heading">
   <header class="panel-head"><h1 id="call-heading">📞 Live call</h1><button class="start-browser-call" id="startBrowserCall" type="button">📞 Call DantaVaani</button><button type="button" id="newCall">New call</button></header>
@@ -206,7 +205,7 @@ button .ico{width:13px;height:13px;margin-right:5px}
 <div class="settings">
 <label><input type="checkbox" id="tts" checked> Speak replies</label><button id="testVoice" type="button">Test voice</button><span id="audioProvider" class="smallcap" aria-live="polite">Bundled audio</span>
 <button id="replayDemo" type="button" hidden>Replay dialogue</button>
-</div></div><audio id="agentAudio" preload="none"></audio><audio id="voicePreview" preload="none" src="./voice/voice-preview.mp3"></audio>
+</div></div><audio id="callAudio" preload="none"></audio><audio id="agentAudio" preload="none"></audio><audio id="voicePreview" preload="none" src="./voice/voice-preview.mp3"></audio>
  </section>
  <aside class="rail" aria-labelledby="agent-heading">
   <header class="rail-head"><h2 id="agent-heading">🤝 Agent-to-agent hand-offs</h2><button id="clearLog" type="button">Clear</button></header>
@@ -249,7 +248,7 @@ button .ico{width:13px;height:13px;margin-right:5px}
    <h2 id="callTitle">DantaVaani reception</h2>
    <p id="browserCallStatus" role="status" tabindex="-1">Ready · Microphone is off</p>
   </div>
-  <p class="browser-privacy" id="callPrivacy"><strong>Demo only. No real appointments. Use a made-up name.</strong> The app keeps it only until you hang up. Your browser may send microphone audio to its speech provider. DantaVaani sends no name, transcript, or audio to its server.</p>
+  <p class="browser-privacy" id="callPrivacy">Practice call · Use a made-up name. Your browser may process mic audio through its speech service.</p>
   <div class="browser-caption">
    <span class="kicker" id="browserSpeaker">Reception</span>
    <p id="browserCaption" role="status">Hi, thanks for calling DantaVaani. Who am I speaking with?</p>

@@ -3,6 +3,7 @@ const $=id=>document.getElementById(id);
 const buttons=[...document.querySelectorAll('[data-demo]')];
 const audio=$('agentAudio');
 const preview=$('voicePreview');
+const callAudio=$('callAudio');
 const clipFor={booking:'booking',emergency:'urgent',query:'fees'};
 const watched=['Voice','Triage','Action'];
 const dialog=$('browserCall');
@@ -29,7 +30,7 @@ function overlayTime(){
 
 const names={'Voice Agent':'Voice','Triage Agent':'Triage','Action Agent':'Action','Action Agent ⚠ ESCALATE':'Action','Clinic System':'Clinic'};
 let revision=0,busy=false,current=null,voice=null,activeCaption=-1,rec=null,replayEpoch=0;
-let voiceSets={},elevenClips=null,elevenKey=null,elevenTurn=-1,mediaReady=false,expectedSrc="";
+let callClips=new Map(),voiceSets={},elevenClips=null,elevenKey=null,elevenTurn=-1,mediaReady=false,expectedSrc="";
 const clipNames=['voice-agent.mp3','triage-agent.mp3','action-agent.mp3'];
 function verifiedManifest(manifest){
  if(manifest?.provider!=='ElevenLabs'||manifest.synthetic!==true)return {};
@@ -44,7 +45,13 @@ function verifiedManifest(manifest){
  return checked;
 }
 fetch('./voice-eleven/demo-voices.json',{cache:'no-store'}).then(response=>response.ok?response.json():null)
- .then(manifest=>{voiceSets=verifiedManifest(manifest);if(!voice)showIdleVoice();}).catch(()=>{});
+ .then(manifest=>{
+  voiceSets=verifiedManifest(manifest);
+  if(manifest?.provider==='ElevenLabs'&&manifest.synthetic===true&&Array.isArray(manifest.call)&&manifest.call.length<=25){
+   callClips=new Map(manifest.call.filter(c=>c?.role==='Voice Agent'&&/^call-(?:[1-9]|1[0-9]|2[0-5])\.mp3$/.test(c.file)&&typeof c.text==='string'&&c.text.length<=250).map(c=>[c.text,c.file]));
+  }
+  if(!voice)showIdleVoice();
+ }).catch(()=>{});
 
 function status(text,mode='ready'){$('callStatus').textContent=text;$('callStatus').dataset.state=mode;modalState(text,mode);}
 function note(text=''){$('inlineError').textContent=text;if(dialog.open)modalNote(text);}
@@ -67,7 +74,8 @@ function updateLiveControl(){
 }
 function stopPrompt(){
  promptEpoch++;clearTimeout(promptTimer);promptTimer=null;
- if(speechBusy)try{window.speechSynthesis.cancel();}catch{}
+ if(speechBusy)try{window.speechSynthesis?.cancel();}catch{}
+ if(callAudio){callAudio.onended=null;callAudio.onerror=null;callAudio.pause?.();}
  speechBusy=false;
 }
 function stopLive(){
@@ -87,26 +95,44 @@ function speakPrompt(text,withoutName=text){
  modalText('Voice Agent',text);
  if(!liveMic)return;
  cancelMic();stopPrompt();
- const synth=window.speechSynthesis, Utterance=window.SpeechSynthesisUtterance;
- if(!$('tts').checked||!synth||!Utterance){scheduleListening();return;}
+ if(!$('tts').checked){scheduleListening();return;}
  const stamp=promptEpoch;
  function finish(){
   if(stamp!==promptEpoch)return;
   promptEpoch++;clearTimeout(promptTimer);promptTimer=null;speechBusy=false;scheduleListening();
  }
+ function speakWithBrowser(){
+  if(stamp!==promptEpoch)return;
+  const synth=window.speechSynthesis, Utterance=window.SpeechSynthesisUtterance;
+  if(!synth||!Utterance){finish();return;}
+  try{
+   const local=(synth.getVoices?.()??[]).filter(v=>v.localService&&/^en(?:-|_)/i.test(v.lang));
+   const rank=v=> (/premium|enhanced|natural/i.test(v.name)?12:0)+(/^en[-_]in$/i.test(v.lang)?8:0)+(/samantha|rishi|karen|moira/i.test(v.name)?2:0);
+   const selected=local.sort((a,b)=>rank(b)-rank(a))[0];
+   const line=new Utterance(selected?text:withoutName);
+   if(selected)line.voice=selected;
+   line.lang=selected?.lang||'en-IN';line.rate=1;
+   line.onend=line.onerror=finish;
+   speechBusy=true;modalState('Voice agent speaking · Browser voice','speaking');
+   promptTimer=setTimeout(()=>{if(stamp===promptEpoch){finish();synth.cancel();}},16000);
+   synth.speak(line);
+  }catch{finish();}
+ }
+ const clip=callClips.get(withoutName);
+ if(!clip||!callAudio?.play){speakWithBrowser();return;}
+ let settled=false;
+ function settle(fallback){
+  if(settled||stamp!==promptEpoch)return;
+  settled=true;clearTimeout(promptTimer);callAudio.onended=null;callAudio.onerror=null;
+  if(fallback){callAudio.pause();speakWithBrowser();}else finish();
+ }
  try{
-  const local=(synth.getVoices?.()??[]).filter(v=>v.localService&&/^en(?:-|_)/i.test(v.lang));
-  const rank=v=> (/premium|enhanced|natural/i.test(v.name)?12:0)+(/^en[-_]in$/i.test(v.lang)?8:0)+(/samantha|rishi|karen|moira/i.test(v.name)?2:0);
-  const selected=local.sort((a,b)=>rank(b)-rank(a))[0];
-  const line=new Utterance(selected?text:withoutName);
-  if(selected)line.voice=selected;
-  line.lang=selected?.lang||'en-IN';line.rate=1;
-  // If only remote voices are offered, never include the caller's name in speech output.
-  line.onend=line.onerror=finish;
   speechBusy=true;modalState('Voice agent speaking','speaking');
-  promptTimer=setTimeout(()=>{if(stamp===promptEpoch){finish();synth.cancel();}},16000);
-  synth.speak(line);
- }catch{finish();}
+  callAudio.onended=()=>settle(false);callAudio.onerror=()=>settle(true);
+  callAudio.src=new URL('./voice-eleven/'+clip,document.baseURI).href;
+  promptTimer=setTimeout(()=>settle(true),12000);
+  void Promise.resolve(callAudio.play()).catch(()=>settle(true));
+ }catch{settle(true);}
 }
 function continueCall(){
  if(!dialog.open||!liveMic||busy||expectedSrc||speechBusy)return;

@@ -24,14 +24,41 @@ const scripts=Object.freeze({
   'There isn’t a verified price here. I’d check with the clinic before booking.',
  ],
 });
+const callPrompts=[
+ 'Hi, thanks for calling DantaVaani. Who am I speaking with?',
+ 'What else can I help you with?',
+ 'Shall I go ahead and book the visit?',
+ 'Thanks. How can I help today?',
+ 'Of course. How can I help today?',
+ 'And your last name? You can also say skip.',
+ 'Sorry, I missed your last name. You can type it or say skip.',
+ 'Sorry, I didn’t quite catch your name. You can type it or say skip.',
+ 'Sorry, I missed that. Should I go ahead, or leave it for now?',
+ 'I’m having trouble hearing you. Use the button below to go ahead or go back.',
+ 'Hi. How can I help today?',
+ 'You’re welcome. Anything else I can help with?',
+ 'Sorry, I missed that. What can I help you with?',
+ 'I’m having trouble hearing you. You can type your request below.',
+ 'Of course, I can help book a practice visit. What’s your first and last name? You can say skip.',
+ 'You’re asking about fees. Shall I check what information is available?',
+ 'Would you like me to log a practice callback request?',
+ 'No problem. What else can I help you with?',
+ 'Shall I go ahead with the practice request?',
+ 'How can I help today?',
+ 'What’s your first and last name? You can say skip.',
+ 'You’re all set. I’ve added your visit to the demo calendar. Anything else I can help with?',
+ 'I’ve logged a practice callback request. No one was contacted. Is there anything else I can help with?',
+ 'I don’t have a verified clinic price to quote. Is there anything else I can help with?',
+ 'I couldn’t finish that practice request. Would you like to try again?',
+];
 const forScenario=scenario=>scripts[scenario].map((text,i)=>Object.freeze({...cast[i],text}));
 export const lines=Object.freeze(forScenario('booking'));
 const maxBytes=512*1024, model='eleven_multilingual_v2';
 export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=12_000,scenario='booking'}={}){
  if(typeof key!=='string'||!/^[A-Za-z0-9_-]{20,256}$/.test(key))throw Error('Set ELEVENLABS_API_KEY through a secure server environment.');
  if(typeof out!=='string'||!out)throw Error('Select an output directory.');
- if(!Object.hasOwn(scripts,scenario))throw Error('Unknown voice scenario.');
- const lines=forScenario(scenario);
+ if(scenario!=='call'&&!Object.hasOwn(scripts,scenario))throw Error('Unknown voice scenario.');
+ const lines=scenario==='call'?callPrompts.map((text,i)=>({...cast[0],file:'call-'+(i+1)+'.mp3',text})):forScenario(scenario);
  const destination=resolve(out);
  await mkdir(destination,{recursive:true});
  // No partial publish: prepare in memory before touching any final paths.
@@ -39,7 +66,7 @@ export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=
   let exists=true;try{await access(resolve(destination,line.file));}catch(e){if(e.code!=='ENOENT')throw e;exists=false;}
   if(exists)throw Error('Output clips already exist; use a new directory to avoid re-render charges.');
  }
- const clips=await Promise.all(lines.map(async line=>{
+ const render=async line=>{
   const signal=AbortSignal.timeout(timeoutMs);
   try{
    const response=await fetcher('https://api.elevenlabs.io/v1/text-to-speech/'+line.voice+'?output_format=mp3_44100_128',{
@@ -59,7 +86,9 @@ export async function renderDemo({key, out, fetcher=globalThis.fetch, timeoutMs=
    const safeStatus=/^Provider status \d{3}$/.test(e.message??'')?' ('+e.message+')':'';
    throw new Error('ElevenLabs could not render '+line.role+safeStatus+'. No audio was published.');
   }
- }));
+ };
+ const clips=[];
+ for(let i=0;i<lines.length;i+=3)clips.push(...await Promise.all(lines.slice(i,i+3).map(render)));
  const temp=await import('node:fs/promises').then(x=>x.mkdtemp(resolve(destination,'.render-')));
  try{
   for(const {line,audio} of clips)await writeFile(resolve(temp,line.file),audio,{flag:'wx',mode:0o644});
